@@ -1,0 +1,24 @@
+syntax = "proto3";
+import "lc.proto";
+
+
+option java_multiple_files = true;
+option java_package = "edu.ucsc.edgelab.smr";
+option java_outer_classname = "smr";
+option objc_class_prefix = "smr";
+
+package smr;
+
+
+message TEBlock {
+    int32 blockID = 1;
+    bytes acceptHash = 2;
+    bytes teSignature = 3;
+    repeated lc.AcceptAck edgeNodeAcks = 4;
+}
+
+message LogEntry {
+    int32 blockID = 1;
+    lc.BlockInfo data = 2;
+    lc.Certificate teCertificate = 3;
+}

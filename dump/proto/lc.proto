@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+
+option java_multiple_files = true;
+option java_package = "edgelab.lc";
+option java_outer_classname = "lc";
+option objc_class_prefix = "lc";
+
+package lc;
+
+
+service EdgeNode {
+    rpc Commit (KeyVal) returns (Dummy);
+    rpc Read (KeyVal) returns (KeyVal);
+    rpc Propose (ProposeData) returns (Dummy);
+    rpc HeartBeat (HeartBeatInfo) returns (Dummy);
+    rpc Certification (Certificate) returns (Dummy);
+    rpc LeaderStatus (EdgeNodeConfig) returns (Dummy);
+}
+
+service TrustedEntity {
+    rpc Register (EdgeNodeConfig) returns (RegistrationConfig);
+    rpc Accept (AcceptAck) returns (Dummy);
+//    rpc GetPublicKey (Dummy) returns (PublicKey);
+    rpc GetCertificate (Header) returns (Certificate);
+    rpc SelfPromotion (EdgeNodeConfig) returns (Dummy);
+
+}
+
+message HeartBeatInfo {
+
+}
+
+message EdgeNodeConfig {
+    PublicKey publicKey = 1;
+    NodeInfo node = 2;
+}
+
+message RegistrationConfig {
+    PublicKey tePublicKey = 1;
+    LeaderConfig clusterLeader = 2;
+    int64 logPosition = 3;
+
+}
+message LeaderConfig {
+    PublicKey leaderPubKey = 1;
+    NodeInfo node = 2;
+    int32 termID = 4;
+}
+
+message ProposeData {
+    Header header = 1;
+    BlockInfo logBlock = 2;
+}
+
+message PrepareAck {
+    ProposeData prepare = 1;
+    //    bytes signature = 2;
+}
+
+message Dummy {
+}
+
+message PublicKey {
+    bytes rawPublicKey = 1;
+}
+
+message Data {
+    bytes data = 1;
+}
+message Accept {
+    Header header = 1;
+    BlockInfo block = 2;
+    //    bytes signature = 3;
+}
+message AcceptAck {
+    Header header = 1;
+    bytes acceptHash = 2;
+    bytes signature = 3;
+}
+
+message Header {
+    NodeInfo node = 2;
+
+}
+
+message BlockInfo {
+    int64 blockID = 1;
+    repeated KeyVal data = 2;
+}
+
+message KeyVal {
+    bytes key = 1;
+    bytes value = 2;
+}
+
+message Certificate {
+    ViewInfo view = 1;
+    int32 blockID = 2;
+    //    bytes acceptHash = 3;
+    bytes signature = 4;
+}
+
+message ViewInfo {
+    NodeInfo leader = 1;
+    int32 viewID = 3;
+}
+
+message NodeInfo {
+    string ip = 1;
+    string port = 2;
+}
