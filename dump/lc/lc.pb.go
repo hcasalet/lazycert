@@ -1070,7 +1070,7 @@ func (c *edgeNodeClient) LeaderStatus(ctx context.Context, in *EdgeNodeConfig, o
 	return out, nil
 }
 
-// EdgeNodeServer is the Server API for EdgeNode service.
+// EdgeNodeServer is the EdgeService API for EdgeNode service.
 type EdgeNodeServer interface {
 	Commit(context.Context, *KeyVal) (*Dummy, error)
 	Read(context.Context, *KeyVal) (*KeyVal, error)
@@ -1280,7 +1280,7 @@ func (c *trustedEntityClient) SelfPromotion(ctx context.Context, in *EdgeNodeCon
 	return out, nil
 }
 
-// TrustedEntityServer is the Server API for TrustedEntity service.
+// TrustedEntityServer is the EdgeService API for TrustedEntity service.
 type TrustedEntityServer interface {
 	Register(context.Context, *EdgeNodeConfig) (*RegistrationConfig, error)
 	Accept(context.Context, *AcceptAck) (*Dummy, error)
