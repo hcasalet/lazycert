@@ -11,7 +11,7 @@ type TrustedEntityService struct {
 	privateKey                *Key
 	termID                    int32
 	leaderConfig              LeaderConfig
-	registeredNodes           []*EdgeNodeConfig
+	registeredNodes           map[string]*EdgeNodeConfig
 	registrationConfiguration *RegistrationConfig
 }
 
@@ -25,7 +25,7 @@ func NewTrustedEntityService() *TrustedEntityService {
 			Node:         nil,
 			TermID:       0,
 		},
-		registeredNodes: make([]*EdgeNodeConfig, 1),
+		registeredNodes: make(map[string]*EdgeNodeConfig),
 		registrationConfiguration: &RegistrationConfig{
 			TePublicKey: &PublicKey{
 				RawPublicKey: privatekey.GetPublicKey(),
@@ -48,8 +48,8 @@ func (t TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *Edge
 	log.Printf("EdgeNode IP:Port %v:%v", srcIP, srcPort)
 	nodeID := srcIP + ":" + srcPort
 
-	//log.Printf("Returning response to registration request: %v", t.registrationConfiguration)
 	log.Printf("Node Identifier: %v", nodeID)
+	t.registeredNodes[nodeID] = edgeNodeConfig
 	return t.registrationConfiguration, nil
 }
 
