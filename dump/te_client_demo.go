@@ -9,7 +9,9 @@ import (
 )
 
 func main() {
-	conn, err := grpc.Dial("localhost:35000")
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	conn, err := grpc.Dial("localhost:35000", opts...)
 	if err != nil {
 		log.Fatalf("Could not connect to TE server: %v", err)
 	}

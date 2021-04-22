@@ -11,7 +11,7 @@ func main() {
 
 	log.Println("Trusted Entity Server")
 
-	lis, err := net.Listen("tpc", "35000")
+	lis, err := net.Listen("tcp", "localhost:35000")
 	if err != nil {
 		log.Fatalf("Error starting the server at port 35000, %v", err)
 	}
