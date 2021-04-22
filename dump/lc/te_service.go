@@ -1,32 +1,23 @@
 package lc
 
-import (
-	"golang.org/x/net/context"
-)
+import "golang.org/x/net/context"
 
 type TrustedEntityService struct {
+	privateKey Key
 }
 
-func (t TrustedEntityService) Commit(ctx context.Context, val *KeyVal) (*Dummy, error) {
+func (t TrustedEntityService) Register(ctx context.Context, config *EdgeNodeConfig) (*RegistrationConfig, error) {
 	panic("implement me")
 }
 
-func (t TrustedEntityService) Read(ctx context.Context, val *KeyVal) (*KeyVal, error) {
+func (t TrustedEntityService) Accept(ctx context.Context, ack *AcceptAck) (*Dummy, error) {
 	panic("implement me")
 }
 
-func (t TrustedEntityService) Propose(ctx context.Context, data *ProposeData) (*Dummy, error) {
+func (t TrustedEntityService) GetCertificate(ctx context.Context, header *Header) (*Certificate, error) {
 	panic("implement me")
 }
 
-func (t TrustedEntityService) HeartBeat(ctx context.Context, info *HeartBeatInfo) (*Dummy, error) {
-	panic("implement me")
-}
-
-func (t TrustedEntityService) Certification(ctx context.Context, certificate *Certificate) (*Dummy, error) {
-	panic("implement me")
-}
-
-func (t TrustedEntityService) LeaderStatus(ctx context.Context, config *EdgeNodeConfig) (*Dummy, error) {
+func (t TrustedEntityService) SelfPromotion(ctx context.Context, config *EdgeNodeConfig) (*Dummy, error) {
 	panic("implement me")
 }

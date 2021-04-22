@@ -17,7 +17,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	lc.RegisterEdgeNodeServer(s, &lc.TrustedEntityService{})
+	lc.RegisterTrustedEntityServer(s, &lc.TrustedEntityService{})
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
