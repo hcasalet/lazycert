@@ -54,3 +54,9 @@ func (k *Key) writePrivateKeyToFile(filePath *os.File) {
 		os.Exit(1)
 	}
 }
+
+func (k *Key) GetPublicKey() []byte {
+	publicKey := &k.privateKey.PublicKey
+	publicKeyInBytes := x509.MarshalPKCS1PublicKey(publicKey)
+	return publicKeyInBytes
+}
