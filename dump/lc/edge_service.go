@@ -27,6 +27,6 @@ func (s EdgeService) Certification(ctx context.Context, certificate *Certificate
 	panic("implement me")
 }
 
-func (s EdgeService) LeaderStatus(ctx context.Context, config *EdgeNodeConfig) (*Dummy, error) {
+func (s EdgeService) LeaderStatus(ctx context.Context, config *LeaderConfig) (*Dummy, error) {
 	panic("implement me")
 }

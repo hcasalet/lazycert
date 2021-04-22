@@ -15,7 +15,7 @@ service EdgeNode {
     rpc Propose (ProposeData) returns (Dummy);
     rpc HeartBeat (HeartBeatInfo) returns (Dummy);
     rpc Certification (Certificate) returns (Dummy);
-    rpc LeaderStatus (EdgeNodeConfig) returns (Dummy);
+    rpc LeaderStatus (LeaderConfig) returns (Dummy);
 }
 
 service TrustedEntity {
