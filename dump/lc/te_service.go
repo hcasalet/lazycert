@@ -4,6 +4,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
 	"log"
+	"net"
 )
 
 type TrustedEntityService struct {
@@ -35,10 +36,20 @@ func NewTrustedEntityService() *TrustedEntityService {
 	}
 }
 
-func (t TrustedEntityService) Register(ctx context.Context, config *EdgeNodeConfig) (*RegistrationConfig, error) {
+func (t TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*RegistrationConfig, error) {
 	peer, _ := peer.FromContext(ctx)
 	log.Printf("Received registration request from %v", peer)
-	log.Printf("Returning response to registration request: %v", t.registrationConfiguration)
+	var srcIP string
+	switch addr := peer.Addr.(type) {
+	case *net.TCPAddr:
+		srcIP = addr.IP.String()
+	}
+	srcPort := edgeNodeConfig.Node.Port
+	log.Printf("EdgeNode IP:Port %v:%v", srcIP, srcPort)
+	nodeID := srcIP + ":" + srcPort
+
+	//log.Printf("Returning response to registration request: %v", t.registrationConfiguration)
+	log.Printf("Node Identifier: %v", nodeID)
 	return t.registrationConfiguration, nil
 }
 

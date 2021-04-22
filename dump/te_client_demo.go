@@ -21,7 +21,13 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	response, err := teclient.Register(ctx, &lc.EdgeNodeConfig{})
+	response, err := teclient.Register(ctx, &lc.EdgeNodeConfig{
+		PublicKey: nil,
+		Node: &lc.NodeInfo{
+			Ip:   "localhost",
+			Port: "35000",
+		},
+	})
 	if err != nil {
 		log.Fatalf("Error when registering with TE: %v", err)
 	}
