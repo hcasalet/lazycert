@@ -5,7 +5,7 @@ option java_multiple_files = true;
 option java_package = "edgelab.lc";
 option java_outer_classname = "lc";
 option objc_class_prefix = "lc";
-
+option go_package = "lc";
 package lc;
 
 
@@ -34,6 +34,7 @@ message HeartBeatInfo {
 message EdgeNodeConfig {
     PublicKey publicKey = 1;
     NodeInfo node = 2;
+    int32 termID = 3;
 }
 
 message RegistrationConfig {
