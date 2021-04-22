@@ -13,7 +13,7 @@ func main() {
 
 	lis, err := net.Listen("tpc", "35000")
 	if err != nil {
-		log.Fatalf("Error starting the server at port 350000, %v", err)
+		log.Fatalf("Error starting the server at port 35000, %v", err)
 	}
 
 	s := grpc.NewServer()

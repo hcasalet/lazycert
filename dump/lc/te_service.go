@@ -1,6 +1,10 @@
 package lc
 
-import "golang.org/x/net/context"
+import (
+	"golang.org/x/net/context"
+	"google.golang.org/grpc/peer"
+	"log"
+)
 
 type TrustedEntityService struct {
 	privateKey                *Key
@@ -20,7 +24,7 @@ func NewTrustedEntityService() *TrustedEntityService {
 			Node:         nil,
 			TermID:       0,
 		},
-		registeredNodes: nil,
+		registeredNodes: make([]*EdgeNodeConfig, 1),
 		registrationConfiguration: &RegistrationConfig{
 			TePublicKey: &PublicKey{
 				RawPublicKey: privatekey.GetPublicKey(),
@@ -32,8 +36,10 @@ func NewTrustedEntityService() *TrustedEntityService {
 }
 
 func (t TrustedEntityService) Register(ctx context.Context, config *EdgeNodeConfig) (*RegistrationConfig, error) {
-
-	panic("implement me")
+	peer, _ := peer.FromContext(ctx)
+	log.Printf("Received registration request from %v", peer)
+	log.Printf("Returning response to registration request: %v", t.registrationConfiguration)
+	return t.registrationConfiguration, nil
 }
 
 func (t TrustedEntityService) Accept(ctx context.Context, ack *AcceptAck) (*Dummy, error) {
