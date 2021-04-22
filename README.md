@@ -15,7 +15,7 @@ Lazy Certification is a methodology which can be easily applied to consensus pro
     
     
 # TODO for TE implementation
-* Update crypto.go to read from pem file when the file is already present.
+* ~~Update crypto.go to read from pem file when the file is already present.~~
 * Implement Accept
   * Count incoming messages and create signed certificate for a block.
 * Implement self-promotion

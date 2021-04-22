@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -26,6 +27,15 @@ func NewKey() *Key {
 		key.createPrivateKey()
 		key.writePrivateKeyToFile(privateKeyFile)
 		defer privateKeyFile.Close()
+	} else {
+		rawPrivKey, err := ioutil.ReadFile(config.privateKeyFileName)
+		if err == nil {
+			log.Fatalf("Could not open PEM file. %v", err)
+		}
+		privPem, _ := pem.Decode(rawPrivKey)
+		privPemBytes := privPem.Bytes
+		parsedkey, err := x509.ParsePKCS1PrivateKey(privPemBytes)
+		key.privateKey = parsedkey
 	}
 	return key
 }
