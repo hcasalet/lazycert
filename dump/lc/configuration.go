@@ -8,6 +8,7 @@ import (
 type Config struct {
 	configFilePath     string
 	privateKeyFileName string
+	f                  int32
 }
 
 func NewConfig() *Config {
@@ -22,8 +23,8 @@ func NewConfig() *Config {
 			log.Fatalf("Could not create configuration file directory: %v", err)
 		}
 	}
-	privateKeyFilePath := lcConfigurationPath + "/privateKey.pem"
-	c := &Config{configFilePath: lcConfigurationPath, privateKeyFileName: privateKeyFilePath}
+	privateKeyFilePath := lcConfigurationPath + "/privateKey_%s.pem"
+	c := &Config{configFilePath: lcConfigurationPath, privateKeyFileName: privateKeyFilePath, f: 1}
 	log.Printf("Configuration: %v", c)
 	return c
 }

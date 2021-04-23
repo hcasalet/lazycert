@@ -17,7 +17,7 @@ type TrustedEntityService struct {
 }
 
 func NewTrustedEntityService() *TrustedEntityService {
-	privatekey := NewKey()
+	privatekey := NewKey("TE")
 	return &TrustedEntityService{
 		privateKey: privatekey,
 		termID:     0,
@@ -55,6 +55,7 @@ func (t TrustedEntityService) GetCertificate(ctx context.Context, header *Header
 func (t TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*Dummy, error) {
 	nodeID := getNodeID(ctx, edgeNodeConfig)
 	log.Printf("Received self promotion from: %v", nodeID)
+	nextTerm := t.termID + 1
 	switch edgeNodeConfig.TermID {
 	case t.termID:
 		log.Println("Edge node term id = TE term ID. SP is for the current term.")
@@ -62,21 +63,21 @@ func (t TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig 
 		If a leader has been assigned for this term, log the request, respond via leader status api to inform the node.
 		If not, log the request.
 		*/
-	case t.termID + 1:
+	case nextTerm:
 		log.Println("Edge node wants to initiate self promotion for the next term.")
-		if t.selfPromotions[t.termID+1] == nil {
-			t.selfPromotions[t.termID+1] = make([]string, 1)
+		if t.selfPromotions[nextTerm] == nil {
+			t.selfPromotions[nextTerm] = make([]string, 1)
 			t.selfPromotions[t.termID][0] = nodeID
 		} else {
 			found := false
-			for _, id := range t.selfPromotions[t.termID+1] {
+			for _, id := range t.selfPromotions[nextTerm] {
 				if id == nodeID {
 					found = true
 					break
 				}
 			}
 			if !found {
-				t.selfPromotions[t.termID] = append(t.selfPromotions[t.termID+1], nodeID)
+				t.selfPromotions[nextTerm] = append(t.selfPromotions[nextTerm], nodeID)
 			} else {
 				log.Printf("Received duplicate self promotion message from node: " + nodeID)
 			}
