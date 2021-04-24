@@ -1,17 +1,18 @@
 package lc
 
 import (
+	"fmt"
 	"log"
 	"os"
 )
 
 type Config struct {
-	configFilePath     string
-	privateKeyFileName string
-	f                  int32
+	ConfigFilePath     string
+	PrivateKeyFileName string
+	F                  int
 }
 
-func NewConfig() *Config {
+func NewConfig(prefix string) *Config {
 	homePath := os.Getenv("HOME")
 	log.Printf("HOME = %v", homePath)
 	lcConfigurationPath := homePath + "/.lazycert"
@@ -24,7 +25,8 @@ func NewConfig() *Config {
 		}
 	}
 	privateKeyFilePath := lcConfigurationPath + "/privateKey_%s.pem"
-	c := &Config{configFilePath: lcConfigurationPath, privateKeyFileName: privateKeyFilePath, f: 1}
+	privateKeyFilePath = fmt.Sprintf(privateKeyFilePath, "TE")
+	c := &Config{ConfigFilePath: lcConfigurationPath, PrivateKeyFileName: privateKeyFilePath, F: 1}
 	log.Printf("Configuration: %v", c)
 	return c
 }

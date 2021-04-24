@@ -15,13 +15,11 @@ type Key struct {
 	privateKey *rsa.PrivateKey
 }
 
-func NewKey(prefix string) *Key {
-	config := NewConfig()
-	config.privateKeyFileName = fmt.Sprintf(config.privateKeyFileName, prefix)
-	_, err := os.Stat(config.privateKeyFileName)
+func NewKey(privateKeyFileName string) *Key {
+	_, err := os.Stat(privateKeyFileName)
 	key := &Key{privateKey: nil}
 	if os.IsNotExist(err) {
-		privateKeyFile, err := os.Create(config.privateKeyFileName)
+		privateKeyFile, err := os.Create(privateKeyFileName)
 		if err != nil {
 			log.Fatalf("Error creating privateKeyFile: %v", err)
 		}
@@ -29,9 +27,9 @@ func NewKey(prefix string) *Key {
 		key.writePrivateKeyToFile(privateKeyFile)
 		defer privateKeyFile.Close()
 	} else {
-		rawPrivKey, err := ioutil.ReadFile(config.privateKeyFileName)
+		rawPrivKey, err := ioutil.ReadFile(privateKeyFileName)
 		if err != nil {
-			log.Fatalf("Could not open PEM file: %v", config.privateKeyFileName)
+			log.Fatalf("Could not open PEM file: %v", privateKeyFileName)
 		}
 		privPem, _ := pem.Decode(rawPrivKey)
 		privPemBytes := privPem.Bytes

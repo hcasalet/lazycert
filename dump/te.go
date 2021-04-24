@@ -17,7 +17,9 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	lc.RegisterTrustedEntityServer(s, lc.NewTrustedEntityService())
+	config := lc.NewConfig("TE")
+
+	lc.RegisterTrustedEntityServer(s, lc.NewTrustedEntityService(config))
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

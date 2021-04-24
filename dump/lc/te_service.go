@@ -14,10 +14,11 @@ type TrustedEntityService struct {
 	registeredNodes           map[string]*EdgeNodeConfig
 	registrationConfiguration *RegistrationConfig
 	selfPromotions            map[int32][]string
+	configuration             *Config
 }
 
-func NewTrustedEntityService() *TrustedEntityService {
-	privatekey := NewKey("TE")
+func NewTrustedEntityService(config *Config) *TrustedEntityService {
+	privatekey := NewKey(config.PrivateKeyFileName)
 	return &TrustedEntityService{
 		privateKey: privatekey,
 		termID:     0,
@@ -35,24 +36,25 @@ func NewTrustedEntityService() *TrustedEntityService {
 			ClusterLeader: nil,
 			LogPosition:   0,
 		},
+		configuration: config,
 	}
 }
 
-func (t TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*RegistrationConfig, error) {
+func (t *TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*RegistrationConfig, error) {
 	nodeID := getNodeID(ctx, edgeNodeConfig)
 	t.registeredNodes[nodeID] = edgeNodeConfig
 	return t.registrationConfiguration, nil
 }
 
-func (t TrustedEntityService) Accept(ctx context.Context, ack *AcceptAck) (*Dummy, error) {
+func (t *TrustedEntityService) Accept(ctx context.Context, ack *AcceptAck) (*Dummy, error) {
 	panic("implement me")
 }
 
-func (t TrustedEntityService) GetCertificate(ctx context.Context, header *Header) (*Certificate, error) {
+func (t *TrustedEntityService) GetCertificate(ctx context.Context, header *Header) (*Certificate, error) {
 	panic("implement me")
 }
 
-func (t TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*Dummy, error) {
+func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*Dummy, error) {
 	nodeID := getNodeID(ctx, edgeNodeConfig)
 	log.Printf("Received self promotion from: %v", nodeID)
 	nextTerm := t.termID + 1
@@ -103,4 +105,12 @@ func getNodeID(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) string {
 
 	log.Printf("Node Identifier: %v", nodeID)
 	return nodeID
+}
+
+func (t *TrustedEntityService) checkSelfPromotion() {
+	nextTermID := t.termID + 1
+	if count, ok := t.selfPromotions[nextTermID]; ok && len(count) > (t.configuration.F+1) {
+		log.Printf("Number of self promotions for termID %v is %v. Going ahead with picking a leader", nextTermID, len(count))
+
+	}
 }
