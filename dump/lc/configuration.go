@@ -10,6 +10,7 @@ type Config struct {
 	ConfigFilePath     string
 	PrivateKeyFileName string
 	F                  int
+	DBDir              string
 }
 
 func NewConfig(prefix string) *Config {
@@ -25,8 +26,10 @@ func NewConfig(prefix string) *Config {
 		}
 	}
 	privateKeyFilePath := lcConfigurationPath + "/privateKey_%s.pem"
-	privateKeyFilePath = fmt.Sprintf(privateKeyFilePath, "TE")
-	c := &Config{ConfigFilePath: lcConfigurationPath, PrivateKeyFileName: privateKeyFilePath, F: 1}
+	dbDirectoryPath := lcConfigurationPath + "/db_%s"
+	privateKeyFilePath = fmt.Sprintf(privateKeyFilePath, prefix)
+	dbDirectoryPath = fmt.Sprintf(dbDirectoryPath, prefix)
+	c := &Config{ConfigFilePath: lcConfigurationPath, PrivateKeyFileName: privateKeyFilePath, F: 1, DBDir: dbDirectoryPath}
 	log.Printf("Configuration: %v", c)
 	return c
 }
