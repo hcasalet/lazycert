@@ -12,7 +12,7 @@ type EdgeClient struct {
 	connections map[string]*grpc.ClientConn
 }
 
-func NewEdgeClient(addr string) *EdgeClient {
+func NewEdgeClient() *EdgeClient {
 
 	edgeNodeClients := &EdgeClient{
 		clientMap:   make(map[string]*EdgeNodeClient),
@@ -44,15 +44,16 @@ func (e *EdgeClient) CloseAllConnections() {
 	}
 }
 
-func (e *EdgeClient) SendLeaderStatus(addr string, leader LeaderConfig) {
-	client := e.clientMap[addr]
-	if client != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
-		_, err := (*client).LeaderStatus(ctx, &leader)
-		if err != nil {
-			log.Printf("Error occurred when sending leader status to '%v': %v", addr, err)
-		}
+func (e *EdgeClient) BroadcastLeaderStatus(leader LeaderConfig) {
+	for addr, client := range e.clientMap {
+		if client != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			_, err := (*client).LeaderStatus(ctx, &leader)
+			if err != nil {
+				log.Printf("Error occurred when sending leader status to '%v': %v", addr, err)
+			}
+			cancel()
 
+		}
 	}
 }

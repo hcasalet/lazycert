@@ -44,9 +44,10 @@ message RegistrationConfig {
 
 }
 message LeaderConfig {
-    PublicKey leaderPubKey = 1;
-    NodeInfo node = 2;
-    int32 termID = 4;
+    string ID =1;
+    int32 termID = 2;
+    NodeInfo node = 3;
+    PublicKey leaderPubKey = 4;
 }
 
 message ProposeData {

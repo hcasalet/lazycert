@@ -4,6 +4,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/peer"
 	"log"
+	"math/rand"
 	"net"
 )
 
@@ -109,8 +110,43 @@ func getNodeID(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) string {
 
 func (t *TrustedEntityService) checkSelfPromotion() {
 	nextTermID := t.termID + 1
-	if count, ok := t.selfPromotions[nextTermID]; ok && len(count) > (t.configuration.F+1) {
-		log.Printf("Number of self promotions for termID %v is %v. Going ahead with picking a leader", nextTermID, len(count))
-
+	if votes, ok := t.selfPromotions[nextTermID]; ok && len(votes) > (t.configuration.F+1) {
+		log.Printf("Number of self promotions for termID %v is %v. Going ahead with picking a leader", nextTermID, len(votes))
+		leaderIndex := -1
+		for i, id := range votes {
+			if id == t.leaderConfig.ID {
+				log.Printf("Current leader will not be selected again. %v, %v", i, id)
+				leaderIndex = i
+				break
+			}
+		}
+		var newLeaderIndex int
+		for newLeaderIndex = leaderIndex; newLeaderIndex != leaderIndex; {
+			newLeaderIndex = rand.Intn(len(votes))
+		}
+		newLeader := t.registeredNodes[votes[newLeaderIndex]]
+		// TODO: Put old leader data into the database.
+		t.leaderConfig = LeaderConfig{
+			ID:     votes[newLeaderIndex],
+			TermID: nextTermID,
+			Node: &NodeInfo{
+				Ip:   newLeader.Node.Ip,
+				Port: newLeader.Node.Port,
+			},
+			LeaderPubKey: &PublicKey{RawPublicKey: newLeader.PublicKey.RawPublicKey},
+		}
+		t.termID = nextTermID
+		t.broadCastLeaderConfig()
+	} else {
+		log.Printf("Have not received enough votes to make leader selection.")
 	}
+}
+
+func (t *TrustedEntityService) broadCastLeaderConfig() {
+	edgeClient := NewEdgeClient()
+	for k, _ := range t.registeredNodes {
+		edgeClient.AddConnection(k)
+	}
+	edgeClient.BroadcastLeaderStatus(t.leaderConfig)
+	edgeClient.CloseAllConnections()
 }
