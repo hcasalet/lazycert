@@ -24,7 +24,7 @@ func NewTELog() *TELog {
 	return t
 }
 
-func (t *TELog) CertifyLog(index int32) {
+func (t *TELog) CertifyLog(index int32, certificate Certificate) {
 
 }
 

@@ -1,8 +1,10 @@
 package lc
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -69,4 +71,40 @@ func (k *Key) GetPublicKey() []byte {
 	publicKey := &k.privateKey.PublicKey
 	publicKeyInBytes := x509.MarshalPKCS1PublicKey(publicKey)
 	return publicKeyInBytes
+}
+
+func (k *Key) SignMessage(message []byte) (signature []byte) {
+	rnd := rand.Reader
+	signature = nil
+	hashedMessage := sha256.Sum256(message)
+	signature, err := rsa.SignPKCS1v15(rnd, k.privateKey, crypto.SHA256, hashedMessage[:])
+	if err != nil {
+		log.Printf("Error occurred while signing message: %v ", err)
+	} else {
+		log.Printf("Signature generated.")
+	}
+	return signature
+}
+
+func VerifyMessage(hashedMessage []byte, signature []byte, publicKey rsa.PublicKey) (valid bool) {
+	err := rsa.VerifyPKCS1v15(&publicKey, crypto.SHA256, hashedMessage[:], signature)
+	if err != nil {
+		log.Printf("Error during signature verification: %v", err)
+		valid = false
+	} else {
+		log.Printf("Signature validated")
+		valid = true
+	}
+	return valid
+}
+
+func GetPublicKeyFromBytes(rawPublicKey []byte) (publicKey *rsa.PublicKey) {
+	pk, err := x509.ParsePKCS1PublicKey(rawPublicKey)
+	if err != nil {
+		log.Printf("Could not parse rsa.PublicKey from the raw public key: %v", rawPublicKey)
+	} else {
+		publicKey = pk
+	}
+
+	return publicKey
 }

@@ -20,8 +20,8 @@ service EdgeNode {
 
 service TrustedEntity {
     rpc Register (EdgeNodeConfig) returns (RegistrationConfig);
-    rpc Accept (AcceptAck) returns (Dummy);
-//    rpc GetPublicKey (Dummy) returns (PublicKey);
+    rpc Accept (AcceptMsg) returns (Dummy);
+    //    rpc GetPublicKey (Dummy) returns (PublicKey);
     rpc GetCertificate (Header) returns (Certificate);
     rpc SelfPromotion (EdgeNodeConfig) returns (Dummy);
 
@@ -70,15 +70,17 @@ message PublicKey {
 message Data {
     bytes data = 1;
 }
-message Accept {
+/*message Accept {
     Header header = 1;
     BlockInfo block = 2;
     //    bytes signature = 3;
-}
-message AcceptAck {
+}*/
+message AcceptMsg {
     Header header = 1;
     bytes acceptHash = 2;
     bytes signature = 3;
+    BlockInfo block  = 4;
+    int32 termID = 5;
 }
 
 message Header {
@@ -87,7 +89,7 @@ message Header {
 }
 
 message BlockInfo {
-    int64 blockID = 1;
+    int32 logID = 1;
     repeated KeyVal data = 2;
 }
 
@@ -98,7 +100,7 @@ message KeyVal {
 
 message Certificate {
     ViewInfo view = 1;
-    int32 blockID = 2;
+    int32 logID = 2;
     //    bytes acceptHash = 3;
     bytes signature = 4;
 }
@@ -114,14 +116,23 @@ message NodeInfo {
 }
 
 message TEBlock {
-    int32 blockID = 1;
+    int32 logID = 1;
     bytes acceptHash = 2;
     bytes teSignature = 3;
-    repeated lc.AcceptAck edgeNodeAcks = 4;
+    repeated AcceptMsg acceptMsgs = 4;
 }
 
 message LogEntry {
-    int32 blockID = 1;
-    lc.BlockInfo data = 2;
-    lc.Certificate teCertificate = 3;
+    int32 logID = 1;
+    BlockInfo data = 2;
+    Certificate teCertificate = 3;
+}
+message AcceptVoteCount {
+    int32 logID = 1;
+    repeated Vote votes = 2;
+}
+
+message Vote {
+    bytes acceptHash = 2;
+    bytes replicaSignature = 3;
 }

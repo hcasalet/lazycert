@@ -47,7 +47,8 @@ func (t *TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *Edg
 	return t.registrationConfiguration, nil
 }
 
-func (t *TrustedEntityService) Accept(ctx context.Context, ack *AcceptAck) (*Dummy, error) {
+func (t *TrustedEntityService) Accept(ctx context.Context, ack *AcceptMsg) (*Dummy, error) {
+
 	panic("implement me")
 }
 
@@ -89,6 +90,7 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 		log.Println("Initial self promotion. No leader identified.")
 
 	}
+	go t.checkSelfPromotion()
 	return &Dummy{}, nil
 }
 
