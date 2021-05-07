@@ -57,3 +57,16 @@ func (e *EdgeClient) BroadcastLeaderStatus(leader LeaderConfig) {
 		}
 	}
 }
+
+func (e *EdgeClient) BroadcastCertificate(certificate *Certificate) {
+	for addr, client := range e.clientMap {
+		if client != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			_, err := (*client).Certification(ctx, certificate)
+			if err != nil {
+				log.Printf("Error occurred when sending leader status to '%v': %v", addr, err)
+			}
+			cancel()
+		}
+	}
+}

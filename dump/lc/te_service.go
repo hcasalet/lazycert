@@ -178,12 +178,17 @@ func (t *TrustedEntityService) checkSelfPromotion() {
 }
 
 func (t *TrustedEntityService) broadCastLeaderConfig() {
+	edgeClient := t.getEdgeClientObject()
+	edgeClient.BroadcastLeaderStatus(t.leaderConfig)
+	edgeClient.CloseAllConnections()
+}
+
+func (t *TrustedEntityService) getEdgeClientObject() *EdgeClient {
 	edgeClient := NewEdgeClient()
 	for k, _ := range t.registeredNodes {
 		edgeClient.AddConnection(k)
 	}
-	edgeClient.BroadcastLeaderStatus(t.leaderConfig)
-	edgeClient.CloseAllConnections()
+	return edgeClient
 }
 
 func (t *TrustedEntityService) verifySignature(nodeID string, messageHash []byte, signature []byte) (valid bool) {
@@ -209,6 +214,7 @@ func (t *TrustedEntityService) checkVotes() {
 			if count >= t.configuration.F+1 {
 				t.cerfityLogPosition(logIDint32, voteMap, acceptHash)
 				t.certifiedLogIDs[logIDint32] = true
+				t.broadCastCertificate(logIDint32)
 			} else {
 				break
 			}
@@ -250,4 +256,10 @@ func (t *TrustedEntityService) countVotes(voteMap map[string]Vote) (int, []byte)
 		}
 	}
 	return count, validAcceptHash
+}
+
+func (t *TrustedEntityService) broadCastCertificate(logID int32) {
+	edgeClient := t.getEdgeClientObject()
+	edgeClient.BroadcastCertificate(t.certificates[logID])
+	edgeClient.CloseAllConnections()
 }
