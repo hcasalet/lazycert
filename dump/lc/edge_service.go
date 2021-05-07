@@ -5,6 +5,18 @@ import (
 )
 
 type EdgeService struct {
+	dbDict   map[string][]byte
+	logEntry map[int32]*LogEntry
+	key      *Key
+}
+
+func NewEdgeService(config *Config) *EdgeService {
+	key := NewKey(config.PrivateKeyFileName)
+	return &EdgeService{
+		key:      key,
+		dbDict:   make(map[string][]byte),
+		logEntry: make(map[int32]*LogEntry),
+	}
 }
 
 func (s EdgeService) Commit(ctx context.Context, val *KeyVal) (*Dummy, error) {

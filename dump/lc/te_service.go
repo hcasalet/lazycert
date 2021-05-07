@@ -115,8 +115,8 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 				log.Printf("Received duplicate self promotion message from node: " + nodeID)
 			}
 		}
-	case 0:
-		log.Println("Initial self promotion. No leader identified.")
+	default:
+		log.Printf("Cannot process self promotion for term %v. Proposed term should be %v.", edgeNodeConfig.TermID, nextTerm)
 		// TODO if self promotion is for any other term other than nextTerm
 		/**
 

@@ -137,3 +137,9 @@ message Vote {
     bytes acceptHash = 2;
     bytes replicaSignature = 3;
 }
+
+enum LogStatus {
+    CERTIFIED = 0;
+    WAITING = 1;
+    ROLLBACK = 2;
+}

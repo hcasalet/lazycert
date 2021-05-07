@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
@@ -28,8 +29,13 @@ func main() {
 		log.Fatalf("Error starting the server at port 350000, %v", err)
 	}
 
+	id := flag.String("id", "1", "EdgeNode Identifier.")
+	flag.Parse()
+
 	s := grpc.NewServer()
-	lc.RegisterEdgeNodeServer(s, &lc.EdgeService{})
+	config := lc.NewConfig("E_" + *id)
+
+	lc.RegisterEdgeNodeServer(s, lc.NewEdgeService(config))
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
