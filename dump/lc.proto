@@ -40,7 +40,7 @@ message EdgeNodeConfig {
 message RegistrationConfig {
     PublicKey tePublicKey = 1;
     LeaderConfig clusterLeader = 2;
-    int64 logPosition = 3;
+    int32 logPosition = 3;
 
 }
 message LeaderConfig {
@@ -99,10 +99,10 @@ message KeyVal {
 }
 
 message Certificate {
-    ViewInfo view = 1;
-    int32 logID = 2;
-    //    bytes acceptHash = 3;
-    bytes signature = 4;
+    int32 logID = 1;
+    bytes acceptHash = 2;
+    bytes teSignature = 3;
+    repeated Vote votes = 4;
 }
 
 message ViewInfo {
@@ -133,6 +133,7 @@ message AcceptVoteCount {
 }
 
 message Vote {
+    NodeInfo node = 1;
     bytes acceptHash = 2;
     bytes replicaSignature = 3;
 }

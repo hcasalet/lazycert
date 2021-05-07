@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"sort"
 )
 
 type TrustedEntityService struct {
@@ -16,6 +17,10 @@ type TrustedEntityService struct {
 	registrationConfiguration *RegistrationConfig
 	selfPromotions            map[int32][]string
 	configuration             *Config
+	voteMap                   map[int32]map[string]Vote
+	currentLogID              int32
+	certifiedLogIDs           map[int32]bool
+	certificates              map[int32]*Certificate
 }
 
 func NewTrustedEntityService(config *Config) *TrustedEntityService {
@@ -37,19 +42,43 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 			ClusterLeader: nil,
 			LogPosition:   0,
 		},
-		configuration: config,
+		configuration:   config,
+		voteMap:         make(map[int32]map[string]Vote),
+		currentLogID:    0,
+		certifiedLogIDs: make(map[int32]bool),
 	}
 }
 
 func (t *TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*RegistrationConfig, error) {
-	nodeID := getNodeID(ctx, edgeNodeConfig)
+	nodeID := getNodeID(ctx, edgeNodeConfig.Node.Port)
 	t.registeredNodes[nodeID] = edgeNodeConfig
 	return t.registrationConfiguration, nil
 }
 
-func (t *TrustedEntityService) Accept(ctx context.Context, ack *AcceptMsg) (*Dummy, error) {
-
-	panic("implement me")
+func (t *TrustedEntityService) Accept(ctx context.Context, acc *AcceptMsg) (*Dummy, error) {
+	if acc.TermID == t.termID {
+		logID := acc.Block.LogID
+		if _, ok := t.voteMap[logID]; !ok {
+			t.voteMap[logID] = make(map[string]Vote)
+			t.certifiedLogIDs[logID] = false
+		}
+		nodeID := getNodeID(ctx, acc.Header.Node.Port)
+		if _, ok := t.voteMap[logID][nodeID]; !ok {
+			if t.verifySignature(nodeID, acc.AcceptHash, acc.Signature) {
+				t.voteMap[logID][nodeID] = Vote{
+					Node:             acc.Header.Node,
+					AcceptHash:       acc.AcceptHash,
+					ReplicaSignature: acc.Signature,
+				}
+			}
+		}
+		// TODO Check if this is the right thing to do.
+		if logID > t.currentLogID {
+			t.currentLogID = logID
+		}
+	}
+	go t.checkVotes()
+	return &Dummy{}, nil
 }
 
 func (t *TrustedEntityService) GetCertificate(ctx context.Context, header *Header) (*Certificate, error) {
@@ -57,7 +86,7 @@ func (t *TrustedEntityService) GetCertificate(ctx context.Context, header *Heade
 }
 
 func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*Dummy, error) {
-	nodeID := getNodeID(ctx, edgeNodeConfig)
+	nodeID := getNodeID(ctx, edgeNodeConfig.Node.Port)
 	log.Printf("Received self promotion from: %v", nodeID)
 	nextTerm := t.termID + 1
 	switch edgeNodeConfig.TermID {
@@ -94,7 +123,7 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 	return &Dummy{}, nil
 }
 
-func getNodeID(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) string {
+func getNodeID(ctx context.Context, srcPort string) string {
 	peer, _ := peer.FromContext(ctx)
 	log.Printf("Received registration request from %v", peer)
 	var srcIP string
@@ -102,7 +131,7 @@ func getNodeID(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) string {
 	case *net.TCPAddr:
 		srcIP = addr.IP.String()
 	}
-	srcPort := edgeNodeConfig.Node.Port
+
 	log.Printf("EdgeNode IP:Port %v:%v", srcIP, srcPort)
 	nodeID := srcIP + ":" + srcPort
 
@@ -151,4 +180,68 @@ func (t *TrustedEntityService) broadCastLeaderConfig() {
 	}
 	edgeClient.BroadcastLeaderStatus(t.leaderConfig)
 	edgeClient.CloseAllConnections()
+}
+
+func (t *TrustedEntityService) verifySignature(nodeID string, messageHash []byte, signature []byte) (valid bool) {
+	if edgeNodeConfig, ok := t.registeredNodes[nodeID]; ok {
+		rawPublicKey := GetPublicKeyFromBytes(edgeNodeConfig.PublicKey.RawPublicKey)
+		valid = VerifyMessage(messageHash, signature, *rawPublicKey)
+	}
+	return valid
+}
+
+func (t *TrustedEntityService) checkVotes() {
+	var sortedLogIDs []int
+	for k := range t.voteMap {
+		if done, ok := t.certifiedLogIDs[k]; ok && !done {
+			sortedLogIDs = append(sortedLogIDs, int(k))
+		}
+	}
+	sort.Ints(sortedLogIDs)
+	for logID := range sortedLogIDs {
+		logIDint32 := int32(logID)
+		if voteMap, ok := t.voteMap[logIDint32]; ok {
+			count, acceptHash := t.countVotes(voteMap)
+			if t.configuration.F+1 >= count {
+				t.cerfityLogPosition(logIDint32, voteMap, acceptHash)
+				t.certifiedLogIDs[logIDint32] = true
+			}
+		}
+
+	}
+}
+
+func (t *TrustedEntityService) cerfityLogPosition(logID int32, voteMap map[string]Vote, hash []byte) {
+	if _, ok := t.certificates[logID]; !ok {
+		teSignature := t.privateKey.SignMessage(hash)
+		votes := make([]*Vote, len(voteMap))
+		for _, v := range voteMap {
+			votes = append(votes, &v)
+		}
+
+		t.certificates[logID] = &Certificate{
+			LogID:       logID,
+			AcceptHash:  hash,
+			TeSignature: teSignature,
+			Votes:       votes,
+		}
+	}
+}
+
+func (t *TrustedEntityService) countVotes(voteMap map[string]Vote) (int, []byte) {
+	var voteCount map[string]int
+	count := 0
+	var validAcceptHash []byte
+	for _, vote := range voteMap {
+		acceptHash := string(vote.AcceptHash)
+		if _, ok := voteCount[acceptHash]; !ok {
+			voteCount[acceptHash] = 0
+		}
+		voteCount[acceptHash] += 1
+		if count < voteCount[acceptHash] {
+			count = voteCount[acceptHash]
+			validAcceptHash = vote.AcceptHash
+		}
+	}
+	return count, validAcceptHash
 }
