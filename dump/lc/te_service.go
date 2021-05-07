@@ -117,6 +117,10 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 		}
 	case 0:
 		log.Println("Initial self promotion. No leader identified.")
+		// TODO if self promotion is for any other term other than nextTerm
+		/**
+
+		 */
 
 	}
 	go t.checkSelfPromotion()
@@ -141,7 +145,7 @@ func getNodeID(ctx context.Context, srcPort string) string {
 
 func (t *TrustedEntityService) checkSelfPromotion() {
 	nextTermID := t.termID + 1
-	if votes, ok := t.selfPromotions[nextTermID]; ok && len(votes) > (t.configuration.F+1) {
+	if votes, ok := t.selfPromotions[nextTermID]; ok && len(votes) >= (t.configuration.F+1) {
 		log.Printf("Number of self promotions for termID %v is %v. Going ahead with picking a leader", nextTermID, len(votes))
 		leaderIndex := -1
 		for i, id := range votes {
@@ -202,9 +206,11 @@ func (t *TrustedEntityService) checkVotes() {
 		logIDint32 := int32(logID)
 		if voteMap, ok := t.voteMap[logIDint32]; ok {
 			count, acceptHash := t.countVotes(voteMap)
-			if t.configuration.F+1 >= count {
+			if count >= t.configuration.F+1 {
 				t.cerfityLogPosition(logIDint32, voteMap, acceptHash)
 				t.certifiedLogIDs[logIDint32] = true
+			} else {
+				break
 			}
 		}
 

@@ -29,6 +29,7 @@ func NewConfig(prefix string) *Config {
 	dbDirectoryPath := lcConfigurationPath + "/db_%s"
 	privateKeyFilePath = fmt.Sprintf(privateKeyFilePath, prefix)
 	dbDirectoryPath = fmt.Sprintf(dbDirectoryPath, prefix)
+	// TODO F to be configured at run based on some input N, F= Ceil (N/2)
 	c := &Config{ConfigFilePath: lcConfigurationPath, PrivateKeyFileName: privateKeyFilePath, F: 1, DBDir: dbDirectoryPath}
 	log.Printf("Configuration: %v", c)
 	return c
