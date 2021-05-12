@@ -10,8 +10,8 @@ package lc;
 
 
 service EdgeNode {
-    rpc Commit (KeyVal) returns (Dummy);
-    rpc Read (KeyVal) returns (KeyVal);
+    rpc Commit (CommitData) returns (Dummy);
+    rpc Read (KeyVal) returns (ReadResponse);
     rpc Propose (ProposeData) returns (Dummy);
     rpc HeartBeat (HeartBeatInfo) returns (Dummy);
     rpc Certification (Certificate) returns (Dummy);
@@ -98,6 +98,14 @@ message KeyVal {
     bytes value = 2;
 }
 
+message ReadResponse {
+    KeyVal data = 1;
+    ResponseStatus status = 2;
+}
+message CommitData {
+    repeated KeyVal data = 1;
+}
+
 message Certificate {
     int32 logID = 1;
     bytes acceptHash = 2;
@@ -142,4 +150,9 @@ enum LogStatus {
     CERTIFIED = 0;
     WAITING = 1;
     ROLLBACK = 2;
+}
+
+enum ResponseStatus {
+    ERROR = 0;
+    SUCCESS = 1;
 }
