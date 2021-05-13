@@ -28,7 +28,7 @@ func main() {
 	port := flag.String("port", "35001", "EdgeNode Identifier.")
 	teAddr := flag.String("te", "localhost:35000", "EdgeNode Identifier.")
 	flag.Parse()
-	lis, err := net.Listen("tpc", *port)
+	lis, err := net.Listen("tpc", "0.0.0.0:"+*port)
 	if err != nil {
 		log.Fatalf("Error starting the server at port 350000, %v", err)
 	}

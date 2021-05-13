@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
@@ -10,8 +11,9 @@ import (
 func main() {
 
 	log.Println("Trusted Entity Server")
-
-	lis, err := net.Listen("tcp", "localhost:35000")
+	port := flag.String("port", "35000", "EdgeNode Identifier.")
+	flag.Parse()
+	lis, err := net.Listen("tcp", "0.0.0.0:"+*port)
 	if err != nil {
 		log.Fatalf("Error starting the server at port 35000, %v", err)
 	}
