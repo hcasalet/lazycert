@@ -11,6 +11,8 @@ type Config struct {
 	PrivateKeyFileName string
 	F                  int
 	DBDir              string
+	TEAddr             string
+	Node               NodeInfo
 }
 
 func NewConfig(prefix string) *Config {
@@ -30,7 +32,17 @@ func NewConfig(prefix string) *Config {
 	privateKeyFilePath = fmt.Sprintf(privateKeyFilePath, prefix)
 	dbDirectoryPath = fmt.Sprintf(dbDirectoryPath, prefix)
 	// TODO F to be configured at run based on some input N, F= Ceil (N/2)
-	c := &Config{ConfigFilePath: lcConfigurationPath, PrivateKeyFileName: privateKeyFilePath, F: 1, DBDir: dbDirectoryPath}
+	c := &Config{
+		ConfigFilePath:     lcConfigurationPath,
+		PrivateKeyFileName: privateKeyFilePath,
+		F:                  1,
+		DBDir:              dbDirectoryPath,
+		TEAddr:             "",
+		Node: NodeInfo{
+			Ip:   "",
+			Port: "",
+		},
+	}
 	log.Printf("Configuration: %v", c)
 	return c
 }

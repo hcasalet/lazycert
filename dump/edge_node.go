@@ -24,18 +24,22 @@ import (
 }*/
 
 func main() {
-	lis, err := net.Listen("tpc", "35000")
+	id := flag.String("id", "1", "EdgeNode Identifier.")
+	port := flag.String("port", "35001", "EdgeNode Identifier.")
+	teAddr := flag.String("te", "localhost:35000", "EdgeNode Identifier.")
+	flag.Parse()
+	lis, err := net.Listen("tpc", *port)
 	if err != nil {
 		log.Fatalf("Error starting the server at port 350000, %v", err)
 	}
 
-	id := flag.String("id", "1", "EdgeNode Identifier.")
-	flag.Parse()
-
 	s := grpc.NewServer()
 	config := lc.NewConfig("E_" + *id)
-
-	lc.RegisterEdgeNodeServer(s, lc.NewEdgeService(config))
+	config.TEAddr = *teAddr
+	config.Node.Port = *port
+	edgeNode := lc.NewEdgeService(config)
+	go edgeNode.RegisterWithTE()
+	lc.RegisterEdgeNodeServer(s, edgeNode)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

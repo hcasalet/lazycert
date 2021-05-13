@@ -2,20 +2,33 @@ package lc
 
 import (
 	"golang.org/x/net/context"
+	"log"
 )
 
 type EdgeService struct {
-	dbDict   map[string][]byte
-	logEntry map[int32]*LogEntry
-	key      *Key
+	dbDict      map[string][]byte
+	logEntry    map[int32]*LogEntry
+	key         *Key
+	leader      *LeaderConfig
+	currentTerm int32
+	config      *Config
+	teClient    *TEClient
+	logPosition int32
+	regConfig   *RegistrationConfig
 }
 
-func NewEdgeService(config *Config) *EdgeService {
-	key := NewKey(config.PrivateKeyFileName)
+func NewEdgeService(configuration *Config) *EdgeService {
+	key := NewKey(configuration.PrivateKeyFileName)
+	tec := NewTEClient(configuration.TEAddr)
 	return &EdgeService{
-		key:      key,
-		dbDict:   make(map[string][]byte),
-		logEntry: make(map[int32]*LogEntry),
+		key:         key,
+		dbDict:      make(map[string][]byte),
+		logEntry:    make(map[int32]*LogEntry),
+		leader:      nil,
+		currentTerm: 0,
+		config:      configuration,
+		teClient:    tec,
+		logPosition: 0,
 	}
 }
 
@@ -49,5 +62,22 @@ func (e *EdgeService) Certification(ctx context.Context, certificate *Certificat
 }
 
 func (e *EdgeService) LeaderStatus(ctx context.Context, config *LeaderConfig) (*Dummy, error) {
-	panic("implement me")
+	e.leader = config
+	e.currentTerm = config.TermID
+
+	return &Dummy{}, nil
+}
+
+func (e *EdgeService) RegisterWithTE() {
+	regConfig, err := e.teClient.Register(PublicKey{
+		RawPublicKey: e.key.GetPublicKey(),
+	}, e.config.Node, e.currentTerm)
+	if err == nil {
+		e.leader = regConfig.ClusterLeader
+		e.currentTerm = regConfig.ClusterLeader.TermID
+		e.logPosition = regConfig.LogPosition
+		e.regConfig = regConfig
+	} else {
+		log.Printf("Error while registering with TE: %v", err)
+	}
 }
