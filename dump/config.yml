@@ -19,4 +19,8 @@ te:
   host: "localhost"
   port: "35000"
 
+epoch:
+  maxsize: 50
+  duration: 10
+
 

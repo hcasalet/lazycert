@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+type EpochConfig struct {
+	MaxSize  int
+	Duration int
+}
 type Config struct {
 	ConfigFilePath     string
 	PrivateKeyFileName string
@@ -13,6 +17,7 @@ type Config struct {
 	DBDir              string
 	TEAddr             string
 	Node               NodeInfo
+	Epoch              EpochConfig
 }
 
 func NewConfig(prefix string) *Config {
@@ -41,6 +46,10 @@ func NewConfig(prefix string) *Config {
 		Node: NodeInfo{
 			Ip:   "",
 			Port: "",
+		},
+		Epoch: EpochConfig{
+			MaxSize:  0,
+			Duration: 0,
 		},
 	}
 	log.Printf("Configuration: %v", c)

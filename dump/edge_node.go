@@ -48,6 +48,8 @@ func ReadArgs() *lc.Config {
 	host := ymlConfig.viper.GetString("edge_nodes." + *id + ".host")
 	tehost := ymlConfig.viper.GetString("te.host")
 	teport := ymlConfig.viper.GetString("te.port")
+	epochDuration := ymlConfig.viper.GetInt("epoch.duration")
+	epochMaxSize := ymlConfig.viper.GetInt("epoch.maxsize")
 	nodeCount := len(ymlConfig.viper.GetStringMap("edge_nodes"))
 	config := lc.NewConfig("E_" + *id)
 	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
@@ -55,5 +57,7 @@ func ReadArgs() *lc.Config {
 	config.Node.Ip = host
 	config.Node.Uuid = *id
 	config.F = int(math.Ceil(float64(nodeCount) / 2))
+	config.Epoch.Duration = epochDuration
+	config.Epoch.MaxSize = epochMaxSize
 	return config
 }
