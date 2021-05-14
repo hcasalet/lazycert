@@ -121,6 +121,7 @@ message ViewInfo {
 message NodeInfo {
     string ip = 1;
     string port = 2;
+    string uuid = 3;
 }
 
 message TEBlock {

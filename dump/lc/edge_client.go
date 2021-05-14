@@ -24,6 +24,12 @@ func NewEdgeClient() *EdgeClient {
 }
 
 func (e *EdgeClient) AddConnection(addr string) {
+	conn, edgeClient := CreateConnectionToEdgeNode(addr)
+	e.connections[addr] = conn
+	e.clientMap[addr] = &edgeClient
+}
+
+func CreateConnectionToEdgeNode(addr string) (*grpc.ClientConn, EdgeNodeClient) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	conn, err := grpc.Dial(addr, opts...)
@@ -31,8 +37,7 @@ func (e *EdgeClient) AddConnection(addr string) {
 		log.Fatalf("Could not connect to TE server: %v", err)
 	}
 	edgeClient := NewEdgeNodeClient(conn)
-	e.connections[addr] = conn
-	e.clientMap[addr] = &edgeClient
+	return conn, edgeClient
 }
 
 func (e *EdgeClient) CloseAllConnections() {
@@ -70,3 +75,9 @@ func (e *EdgeClient) BroadcastCertificate(certificate *Certificate) {
 		}
 	}
 }
+
+/*func ForwardCommitDataToLeader (data CommitData, config *LeaderConfig) {
+	e := NewEdgeClient()
+	e.AddConnection(config.Node.Ip+":"+config.Node.Port)
+	e.
+}*/

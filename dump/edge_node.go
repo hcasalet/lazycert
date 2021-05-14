@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 	"net"
 )
 
@@ -24,23 +26,34 @@ import (
 }*/
 
 func main() {
-	id := flag.String("id", "1", "EdgeNode Identifier.")
-	port := flag.String("port", "35001", "EdgeNode Identifier.")
-	teAddr := flag.String("te", "localhost:35000", "EdgeNode Identifier.")
-	flag.Parse()
-	lis, err := net.Listen("tpc", "0.0.0.0:"+*port)
+	config := ReadArgs()
+	lis, err := net.Listen("tpc", "0.0.0.0:"+config.Node.Port)
 	if err != nil {
 		log.Fatalf("Error starting the server at port 350000, %v", err)
 	}
-
 	s := grpc.NewServer()
-	config := lc.NewConfig("E_" + *id)
-	config.TEAddr = *teAddr
-	config.Node.Port = *port
 	edgeNode := lc.NewEdgeService(config)
 	go edgeNode.RegisterWithTE()
 	lc.RegisterEdgeNodeServer(s, edgeNode)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+}
+
+func ReadArgs() *lc.Config {
+	id := flag.String("id", "1", "EdgeNode Identifier.")
+	flag.Parse()
+	ymlConfig := NewLCConfig()
+	port := ymlConfig.viper.GetString("edge_nodes." + *id + ".port")
+	host := ymlConfig.viper.GetString("edge_nodes." + *id + ".host")
+	tehost := ymlConfig.viper.GetString("te.host")
+	teport := ymlConfig.viper.GetString("te.port")
+	nodeCount := len(ymlConfig.viper.GetStringMap("edge_nodes"))
+	config := lc.NewConfig("E_" + *id)
+	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
+	config.Node.Port = port
+	config.Node.Ip = host
+	config.Node.Uuid = *id
+	config.F = int(math.Ceil(float64(nodeCount) / 2))
+	return config
 }

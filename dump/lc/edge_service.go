@@ -15,6 +15,8 @@ type EdgeService struct {
 	teClient    *TEClient
 	logPosition int32
 	regConfig   *RegistrationConfig
+	lc          *LeaderClient
+	iAmLeader   bool
 }
 
 func NewEdgeService(configuration *Config) *EdgeService {
@@ -29,11 +31,19 @@ func NewEdgeService(configuration *Config) *EdgeService {
 		config:      configuration,
 		teClient:    tec,
 		logPosition: 0,
+		lc:          nil,
+		iAmLeader:   false,
 	}
 }
 
-func (e *EdgeService) Commit(ctx context.Context, val *CommitData) (*Dummy, error) {
-	panic("implement me")
+func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dummy, error) {
+	if e.iAmLeader {
+
+	} else {
+		e.lc.sendCommitDataToLeader(commitData)
+	}
+
+	return &Dummy{}, nil
 }
 
 func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, error) {
@@ -61,10 +71,18 @@ func (e *EdgeService) Certification(ctx context.Context, certificate *Certificat
 	panic("implement me")
 }
 
-func (e *EdgeService) LeaderStatus(ctx context.Context, config *LeaderConfig) (*Dummy, error) {
-	e.leader = config
-	e.currentTerm = config.TermID
-
+func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConfig) (*Dummy, error) {
+	e.leader = leaderConfig
+	e.currentTerm = leaderConfig.TermID
+	if string(e.key.GetPublicKey()) == string(leaderConfig.LeaderPubKey.RawPublicKey) {
+		e.iAmLeader = true
+	}
+	if !e.iAmLeader {
+		if e.lc == nil {
+			e.lc = NewLeaderClient()
+		}
+		go e.lc.ConnectToLeader(e.leader.Node)
+	}
 	return &Dummy{}, nil
 }
 
@@ -77,6 +95,8 @@ func (e *EdgeService) RegisterWithTE() {
 		e.currentTerm = regConfig.ClusterLeader.TermID
 		e.logPosition = regConfig.LogPosition
 		e.regConfig = regConfig
+		e.lc = NewLeaderClient()
+		e.lc.ConnectToLeader(e.leader.Node)
 	} else {
 		log.Printf("Error while registering with TE: %v", err)
 	}
