@@ -46,6 +46,7 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 		voteMap:         make(map[int32]map[string]Vote),
 		currentLogID:    0,
 		certifiedLogIDs: make(map[int32]bool),
+		certificates:    make(map[int32]*Certificate),
 	}
 }
 
