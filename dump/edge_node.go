@@ -43,7 +43,7 @@ func main() {
 func ReadArgs() *lc.Config {
 	id := flag.String("id", "1", "EdgeNode Identifier.")
 	flag.Parse()
-	ymlConfig := lc.NewLCConfig()
+	ymlConfig := lc.NewYamlConfig()
 	port := ymlConfig.Viper.GetString("edge_nodes." + *id + ".port")
 	host := ymlConfig.Viper.GetString("edge_nodes." + *id + ".host")
 	tehost := ymlConfig.Viper.GetString("te.host")

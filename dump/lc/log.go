@@ -8,14 +8,16 @@ type Log struct {
 	BatchedData chan []*CommitData
 	Certificate chan *Certificate
 	dbDict      map[string][]byte
+	config      *Config
 }
 
-func NewLog() *Log {
+func NewLog(cfg *Config) *Log {
 	l := &Log{
 		LogIndex:    -1,
 		logEntry:    make(map[int32]*LogEntry),
 		BatchedData: make(chan []*CommitData),
 		Certificate: make(chan *Certificate),
+		config:      cfg,
 	}
 	go l.processBatches()
 	go l.certify()

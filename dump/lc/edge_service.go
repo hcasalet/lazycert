@@ -29,7 +29,7 @@ func NewEdgeService(configuration *Config) *EdgeService {
 		teClient:    tec,
 		lc:          nil,
 		iAmLeader:   false,
-		log:         NewLog(),
+		log:         NewLog(configuration),
 	}
 	edgeService.queue = NewTimedQueue(configuration.Epoch.Duration, configuration.Epoch.MaxSize, edgeService.log.BatchedData)
 	return edgeService

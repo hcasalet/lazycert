@@ -5,11 +5,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-type LCConfig struct {
+type YamlConfig struct {
 	Viper *viper.Viper
 }
 
-func NewLCConfig() *LCConfig {
+func NewYamlConfig() *YamlConfig {
 	viper.SetConfigName("config.yml")
 	viper.AddConfigPath("./")
 	viper.SetConfigType("yaml")
@@ -18,7 +18,7 @@ func NewLCConfig() *LCConfig {
 		panic("Cannot read configuration file.")
 	} else {
 		fmt.Println("Config file read.")
-		myviper := &LCConfig{
+		myviper := &YamlConfig{
 			Viper: viper.GetViper(),
 		}
 		return myviper
