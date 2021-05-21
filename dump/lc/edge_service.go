@@ -59,7 +59,9 @@ func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, err
 }
 
 func (e *EdgeService) Propose(ctx context.Context, data *ProposeData) (*Dummy, error) {
-	panic("implement me")
+	// TODO: validate header to ensure data was received from the right leader.
+	go e.log.Propose(data.LogBlock.LogID, data.LogBlock.Data)
+	return &Dummy{}, nil
 }
 
 func (e *EdgeService) HeartBeat(ctx context.Context, info *HeartBeatInfo) (*Dummy, error) {

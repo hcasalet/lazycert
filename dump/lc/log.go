@@ -27,22 +27,26 @@ func (l *Log) processBatches() {
 
 		l.LogIndex += 1
 		currentLogIndex := l.LogIndex
-		log.Printf("Processing new batch for log index: %v", currentLogIndex)
-		log.Printf("Batch contains %v transactions", len(batch))
-		entry := &LogEntry{
-			LogID: currentLogIndex,
-			Data: &BlockInfo{
-				LogID: currentLogIndex,
-				Data:  batch,
-			},
-			TeCertificate: nil,
-		}
-		log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
+		l.Propose(currentLogIndex, batch)
 		/**
 		This is a provisional update to the current data before the current log entry has been certified.
 		*/
 		go l.updateDBDict(currentLogIndex)
 	}
+}
+
+func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) {
+	log.Printf("Processing new batch for log index: %v", currentLogIndex)
+	log.Printf("Batch contains %v transactions", len(batch))
+	entry := &LogEntry{
+		LogID: currentLogIndex,
+		Data: &BlockInfo{
+			LogID: currentLogIndex,
+			Data:  batch,
+		},
+		TeCertificate: nil,
+	}
+	log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
 }
 
 func (l *Log) certify() {
