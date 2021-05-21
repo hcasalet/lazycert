@@ -90,7 +90,7 @@ message Header {
 
 message BlockInfo {
     int32 logID = 1;
-    repeated KeyVal data = 2;
+    repeated CommitData data = 2;
 }
 
 message KeyVal {

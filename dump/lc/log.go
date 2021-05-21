@@ -16,28 +16,40 @@ func NewLog() *Log {
 		BatchedData: make(chan []*CommitData),
 		Certificate: make(chan *Certificate),
 	}
-	go l.ProcessBatches()
-	go l.Certify()
+	go l.processBatches()
+	go l.certify()
 	return l
 }
 
-func (l *Log) ProcessBatches() {
-	for {
-		batch := <-l.BatchedData
+func (l *Log) processBatches() {
+	for batch := range l.BatchedData {
+
 		l.LogIndex += 1
 		currentLogIndex := l.LogIndex
 		log.Printf("Processing new batch for log index: %v", currentLogIndex)
 		log.Printf("Batch contains %v transactions", len(batch))
-
+		entry := &LogEntry{
+			LogID: currentLogIndex,
+			Data: &BlockInfo{
+				LogID: currentLogIndex,
+				Data:  batch,
+			},
+			TeCertificate: nil,
+		}
+		log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
 	}
 }
 
-func (l *Log) Certify() {
-	for {
-		certificate := <-l.Certificate
-		log.Printf("Certified for log position %v", certificate.LogID)
-		if _, ok := l.logEntry[certificate.LogID]; ok {
-			l.logEntry[certificate.LogID].TeCertificate = certificate
+func (l *Log) certify() {
+	for certificate := range l.Certificate {
+		logIndex := certificate.LogID
+		log.Printf("Certified for log position %v", logIndex)
+		if _, ok := l.logEntry[logIndex]; ok {
+			if l.logEntry[logIndex].TeCertificate == nil {
+				l.logEntry[logIndex].TeCertificate = certificate
+			} else {
+				log.Printf("Possible duplicate certificate received for index %v, %v", logIndex, certificate)
+			}
 		}
 	}
 }
