@@ -37,7 +37,7 @@ func NewKey(privateKeyFileName string) *Key {
 		privPemBytes := privPem.Bytes
 		parsedkey, err := x509.ParsePKCS1PrivateKey(privPemBytes)
 		key.privateKey = parsedkey
-		log.Println("Parsed Key: ", parsedkey)
+		//log.Println("Parsed Key: ", parsedkey)
 	}
 	return key
 }

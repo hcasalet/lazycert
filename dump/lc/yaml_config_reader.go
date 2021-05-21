@@ -12,13 +12,13 @@ type YamlConfig struct {
 
 func NewYamlConfig() *YamlConfig {
 	viper.SetConfigName("config.yml")
-	viper.AddConfigPath("./")
+	viper.AddConfigPath("./dump/")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Error reading configuration file: %v", err)
 		panic("Cannot read configuration file.")
 	} else {
-		fmt.Println("Config file read.")
+		//fmt.Println("Config file read.")
 		myviper := &YamlConfig{
 			Viper: viper.GetViper(),
 		}
@@ -65,4 +65,17 @@ func (y *YamlConfig) GetAllClusterNodes(exid *string) []NodeInfo {
 	fmt.Printf("Cluster nodes (excluding self): %v", nodes)
 	return nodes
 
+}
+
+func (y *YamlConfig) GetTEConfig() *Config {
+	tehost := y.Viper.GetString("te.host")
+	teport := y.Viper.GetString("te.port")
+	nodeCount := len(y.Viper.GetStringMap("edge_nodes"))
+	config := NewConfig("TE")
+	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
+	config.Node.Port = teport
+	config.Node.Ip = tehost
+	config.Node.Uuid = "te"
+	config.F = int(math.Ceil(float64(nodeCount) / 2))
+	return config
 }

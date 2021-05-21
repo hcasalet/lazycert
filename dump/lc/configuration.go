@@ -53,6 +53,6 @@ func NewConfig(prefix string) *Config {
 			Duration: 0,
 		},
 	}
-	log.Printf("Configuration: %v", c)
+	//log.Printf("Configuration: %v", c)
 	return c
 }

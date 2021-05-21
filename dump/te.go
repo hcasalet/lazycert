@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
-	"math"
 	"net"
 )
 
@@ -26,14 +24,6 @@ func main() {
 
 func ReadTEArgs() *lc.Config {
 	ymlConfig := lc.NewYamlConfig()
-	tehost := ymlConfig.Viper.GetString("te.host")
-	teport := ymlConfig.Viper.GetString("te.port")
-	nodeCount := len(ymlConfig.Viper.GetStringMap("edge_nodes"))
-	config := lc.NewConfig("TE")
-	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
-	config.Node.Port = teport
-	config.Node.Ip = tehost
-	config.Node.Uuid = "te"
-	config.F = int(math.Ceil(float64(nodeCount) / 2))
+	config := ymlConfig.GetTEConfig()
 	return config
 }

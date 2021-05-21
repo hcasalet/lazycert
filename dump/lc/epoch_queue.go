@@ -41,8 +41,8 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 	go func() {
 		for {
 			select {
-			case e := <-t.ticker.C:
-				log.Printf("Ticker: %v", e)
+			case <-t.ticker.C:
+				//log.Printf("Ticker: %v", e)
 				t.processEpoch(t.epoch)
 				//log.Printf("commit data to process in this epoch: %v",)
 			}
@@ -66,7 +66,7 @@ func (q *TimedQueue) Insert(data *CommitData) {
 
 func (q *TimedQueue) processEpoch(n int) {
 	q.mutex.Lock()
-	if _, ok := q.processed[n]; !ok {
+	if _, ok := q.processed[n]; !ok && q.counter >= q.cap {
 		log.Printf("Processing epoch %v", n)
 		q.processed[n] = true
 		q.ticker.Reset(q.d)
@@ -80,7 +80,7 @@ func (q *TimedQueue) processEpoch(n int) {
 		q.epoch += 1
 		q.counter = 0
 	} else {
-		log.Printf("Epoch already processed. %v", n)
+		log.Printf("Waiting for epoch to fill up. %v", n)
 	}
 	q.mutex.Unlock()
 }
