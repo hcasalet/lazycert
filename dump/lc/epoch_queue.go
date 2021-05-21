@@ -17,6 +17,8 @@ type TimedQueue struct {
 	receiver       chan []*CommitData
 	processedEpoch int
 	cap            int
+	d              time.Duration
+	processed      map[int]bool
 }
 
 func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
@@ -31,14 +33,17 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 		receiver:       p,
 		processedEpoch: 0,
 		cap:            capacity,
+		processed:      make(map[int]bool),
 	}
-	t.ticker = time.NewTicker(time.Duration(ms) * time.Millisecond)
+	epochDuration := time.Duration(ms) * time.Millisecond
+	t.d = epochDuration
+	t.ticker = time.NewTicker(epochDuration)
 	go func() {
 		for {
 			select {
 			case e := <-t.ticker.C:
-				log.Printf("Epoch #%v, time: %v", t.epoch, e)
-				t.processEpoch()
+				log.Printf("Ticker: %v", e)
+				t.processEpoch(t.epoch)
 				//log.Printf("commit data to process in this epoch: %v",)
 			}
 		}
@@ -52,20 +57,30 @@ func (q *TimedQueue) Insert(data *CommitData) {
 	q.cur = (q.cur + 1) % cap(q.commitQueue)
 	q.counter += 1
 	capacityReached := q.counter >= q.cap
+	e := q.epoch
 	q.mutex.Unlock()
 	if capacityReached {
-		go q.processEpoch()
+		go q.processEpoch(e)
 	}
 }
 
-func (q *TimedQueue) processEpoch() {
+func (q *TimedQueue) processEpoch(n int) {
 	q.mutex.Lock()
-	epochQueue := make([]*CommitData, q.counter)
-	for i := 0; i < q.counter; i++ {
-		epochQueue[i] = q.commitQueue[(q.prev+i)%cap(q.commitQueue)]
-		q.commitQueue[(q.prev+i)%cap(q.commitQueue)] = nil
+	if _, ok := q.processed[n]; !ok {
+		log.Printf("Processing epoch %v", n)
+		q.processed[n] = true
+		q.ticker.Reset(q.d)
+		epochQueue := make([]*CommitData, q.counter)
+		for i := 0; i < q.counter; i++ {
+			epochQueue[i] = q.commitQueue[(q.prev+i)%cap(q.commitQueue)]
+			q.commitQueue[(q.prev+i)%cap(q.commitQueue)] = nil
+		}
+		q.prev = q.cur
+		q.receiver <- epochQueue
+		q.epoch += 1
+		q.counter = 0
+	} else {
+		log.Printf("Epoch already processed. %v", n)
 	}
-	q.prev = q.cur
 	q.mutex.Unlock()
-	q.receiver <- epochQueue
 }

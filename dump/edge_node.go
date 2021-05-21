@@ -27,9 +27,9 @@ import (
 
 func main() {
 	config := ReadArgs()
-	lis, err := net.Listen("tpc", "0.0.0.0:"+config.Node.Port)
+	lis, err := net.Listen("tcp", "0.0.0.0:"+config.Node.Port)
 	if err != nil {
-		log.Fatalf("Error starting the server at port 350000, %v", err)
+		log.Fatalf("Error starting the server at port %v, %v", config.Node.Port, err)
 	}
 	s := grpc.NewServer()
 	edgeNode := lc.NewEdgeService(config)
@@ -43,14 +43,14 @@ func main() {
 func ReadArgs() *lc.Config {
 	id := flag.String("id", "1", "EdgeNode Identifier.")
 	flag.Parse()
-	ymlConfig := NewLCConfig()
-	port := ymlConfig.viper.GetString("edge_nodes." + *id + ".port")
-	host := ymlConfig.viper.GetString("edge_nodes." + *id + ".host")
-	tehost := ymlConfig.viper.GetString("te.host")
-	teport := ymlConfig.viper.GetString("te.port")
-	epochDuration := ymlConfig.viper.GetInt("epoch.duration")
-	epochMaxSize := ymlConfig.viper.GetInt("epoch.maxsize")
-	nodeCount := len(ymlConfig.viper.GetStringMap("edge_nodes"))
+	ymlConfig := lc.NewLCConfig()
+	port := ymlConfig.Viper.GetString("edge_nodes." + *id + ".port")
+	host := ymlConfig.Viper.GetString("edge_nodes." + *id + ".host")
+	tehost := ymlConfig.Viper.GetString("te.host")
+	teport := ymlConfig.Viper.GetString("te.port")
+	epochDuration := ymlConfig.Viper.GetInt("epoch.duration")
+	epochMaxSize := ymlConfig.Viper.GetInt("epoch.maxsize")
+	nodeCount := len(ymlConfig.Viper.GetStringMap("edge_nodes"))
 	config := lc.NewConfig("E_" + *id)
 	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
 	config.Node.Port = port

@@ -1,4 +1,4 @@
-package main
+package lc
 
 import (
 	"fmt"
@@ -6,12 +6,12 @@ import (
 )
 
 type LCConfig struct {
-	viper *viper.Viper
+	Viper *viper.Viper
 }
 
 func NewLCConfig() *LCConfig {
 	viper.SetConfigName("config.yml")
-	viper.AddConfigPath("./dump/")
+	viper.AddConfigPath("./")
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Error reading configuration file: %v", err)
@@ -19,7 +19,7 @@ func NewLCConfig() *LCConfig {
 	} else {
 		fmt.Println("Config file read.")
 		myviper := &LCConfig{
-			viper: viper.GetViper(),
+			Viper: viper.GetViper(),
 		}
 		return myviper
 	}

@@ -25,10 +25,10 @@ func main() {
 }
 
 func ReadTEArgs() *lc.Config {
-	ymlConfig := NewLCConfig()
-	tehost := ymlConfig.viper.GetString("te.host")
-	teport := ymlConfig.viper.GetString("te.port")
-	nodeCount := len(ymlConfig.viper.GetStringMap("edge_nodes"))
+	ymlConfig := lc.NewLCConfig()
+	tehost := ymlConfig.Viper.GetString("te.host")
+	teport := ymlConfig.Viper.GetString("te.port")
+	nodeCount := len(ymlConfig.Viper.GetStringMap("edge_nodes"))
 	config := lc.NewConfig("TE")
 	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
 	config.Node.Port = teport

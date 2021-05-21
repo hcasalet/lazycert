@@ -7,38 +7,39 @@ import (
 
 type EdgeService struct {
 	dbDict      map[string][]byte
-	logEntry    map[int32]*LogEntry
 	key         *Key
+	log         *Log
 	leader      *LeaderConfig
 	currentTerm int32
 	config      *Config
 	teClient    *TEClient
-	logPosition int32
 	regConfig   *RegistrationConfig
 	lc          *LeaderClient
 	iAmLeader   bool
+	queue       *TimedQueue
 }
 
 func NewEdgeService(configuration *Config) *EdgeService {
 	key := NewKey(configuration.PrivateKeyFileName)
 	tec := NewTEClient(configuration.TEAddr)
-	return &EdgeService{
+	edgeService := &EdgeService{
 		key:         key,
 		dbDict:      make(map[string][]byte),
-		logEntry:    make(map[int32]*LogEntry),
 		leader:      nil,
 		currentTerm: 0,
 		config:      configuration,
 		teClient:    tec,
-		logPosition: 0,
 		lc:          nil,
 		iAmLeader:   false,
+		log:         NewLog(),
 	}
+	edgeService.queue = NewTimedQueue(configuration.Epoch.Duration, configuration.Epoch.MaxSize, edgeService.log.BatchedData)
+	return edgeService
 }
 
 func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dummy, error) {
 	if e.iAmLeader {
-
+		e.queue.Insert(commitData)
 	} else {
 		e.lc.sendCommitDataToLeader(commitData)
 	}
@@ -68,7 +69,8 @@ func (e *EdgeService) HeartBeat(ctx context.Context, info *HeartBeatInfo) (*Dumm
 }
 
 func (e *EdgeService) Certification(ctx context.Context, certificate *Certificate) (*Dummy, error) {
-	panic("implement me")
+	e.log.Certificate <- certificate
+	return &Dummy{}, nil
 }
 
 func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConfig) (*Dummy, error) {
@@ -91,9 +93,9 @@ func (e *EdgeService) RegisterWithTE() {
 		RawPublicKey: e.key.GetPublicKey(),
 	}, e.config.Node, e.currentTerm)
 	if err == nil {
+		log.Printf("Registered with TE. Registration configuration %v", regConfig)
 		e.leader = regConfig.ClusterLeader
 		e.currentTerm = regConfig.ClusterLeader.TermID
-		e.logPosition = regConfig.LogPosition
 		e.regConfig = regConfig
 		e.lc = NewLeaderClient()
 		e.lc.ConnectToLeader(e.leader.Node)
