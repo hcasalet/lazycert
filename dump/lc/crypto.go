@@ -86,8 +86,8 @@ func (k *Key) SignMessage(message []byte) (signature []byte) {
 	return signature
 }
 
-func VerifyMessage(hashedMessage []byte, signature []byte, publicKey rsa.PublicKey) (valid bool) {
-	err := rsa.VerifyPKCS1v15(&publicKey, crypto.SHA256, hashedMessage[:], signature)
+func VerifyMessage(hashedMessage []byte, signature []byte, publicKey *rsa.PublicKey) (valid bool) {
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashedMessage[:], signature)
 	if err != nil {
 		log.Printf("Error during signature verification: %v", err)
 		valid = false

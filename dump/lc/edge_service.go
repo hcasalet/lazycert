@@ -78,9 +78,19 @@ func (e *EdgeService) HeartBeat(ctx context.Context, info *HeartBeatInfo) (*Dumm
 	panic("implement me")
 }
 
-func (e *EdgeService) Certification(ctx context.Context, certificate *Certificate) (*Dummy, error) {
-	e.log.Certificate <- certificate
-	return &Dummy{}, nil
+func (e *EdgeService) Certification(ctx context.Context, certificate *Certificate) (d *Dummy, err error) {
+	if VerifyMessage(
+		certificate.AcceptHash,
+		certificate.TeSignature,
+		GetPublicKeyFromBytes(e.regConfig.TePublicKey.RawPublicKey)) {
+		log.Printf("Verfied certificate received from TE")
+		e.log.Certificate <- certificate
+		err = nil
+	} else {
+		log.Printf("Certificate could not be verified. Signature does not match that of TE.")
+		err = errors.New("signature match failed. invalid TE signature")
+	}
+	return &Dummy{}, err
 }
 
 func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConfig) (*Dummy, error) {
@@ -120,8 +130,13 @@ func (e *EdgeService) RegisterWithTE() {
 }
 
 func (e *EdgeService) waitForLogEntryUpdate() {
+	clusterClient := NewEdgeClient()
+	for _, c := range e.config.ClusterNodes {
+		addr := c.Ip + ":" + c.Port
+		clusterClient.AddConnection(addr)
+	}
 	for l := range e.newLogEntryChannel {
-		ConvertToProposeData(*l, &e.config.Node)
-
+		p := ConvertToProposeData(*l, &e.config.Node)
+		clusterClient.SendProposal(p)
 	}
 }

@@ -18,11 +18,12 @@ type Log struct {
 
 func NewLog(cfg *Config) *Log {
 	l := &Log{
-		LogIndex:    -1,
-		logEntry:    make(map[int32]*LogEntry),
-		BatchedData: make(chan []*CommitData),
-		Certificate: make(chan *Certificate),
-		config:      cfg,
+		LogIndex:              -1,
+		logEntry:              make(map[int32]*LogEntry),
+		BatchedData:           make(chan []*CommitData),
+		Certificate:           make(chan *Certificate),
+		config:                cfg,
+		logEntryUpdateChannel: nil,
 	}
 	go l.processBatches()
 	go l.certify()
@@ -35,6 +36,9 @@ func (l *Log) processBatches() {
 		l.LogIndex += 1
 		currentLogIndex := l.LogIndex
 		l.Propose(currentLogIndex, batch)
+		if l.logEntryUpdateChannel != nil {
+			l.logEntryUpdateChannel <- l.logEntry[currentLogIndex]
+		}
 		/**
 		This is a provisional update to the current data before the current log entry has been certified.
 		*/
