@@ -70,5 +70,12 @@ func (l *Log) updateDBDict(logIndex int32) {
 			l.dbDict[string(kv.Key)] = kv.Value
 		}
 	}
+}
 
+func (l *Log) Read(key string) ([]byte, bool) {
+	status := false
+	if _, ok := l.dbDict[key]; ok {
+		status = ok
+	}
+	return l.dbDict[key], status
 }

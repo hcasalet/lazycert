@@ -6,7 +6,6 @@ import (
 )
 
 type EdgeService struct {
-	dbDict      map[string][]byte
 	key         *Key
 	log         *Log
 	leader      *LeaderConfig
@@ -24,7 +23,6 @@ func NewEdgeService(configuration *Config) *EdgeService {
 	tec := NewTEClient(configuration.TEAddr)
 	edgeService := &EdgeService{
 		key:         key,
-		dbDict:      make(map[string][]byte),
 		leader:      nil,
 		currentTerm: 0,
 		config:      configuration,
@@ -49,7 +47,7 @@ func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dumm
 
 func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, error) {
 	key := string(val.Key)
-	if v, ok := e.dbDict[key]; ok {
+	if v, ok := e.log.Read(key); ok {
 		return &ReadResponse{
 			Data: &KeyVal{
 				Key:   val.Key,
