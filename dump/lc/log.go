@@ -7,6 +7,7 @@ type Log struct {
 	logEntry    map[int32]*LogEntry
 	BatchedData chan []*CommitData
 	Certificate chan *Certificate
+	dbDict      map[string][]byte
 }
 
 func NewLog() *Log {
@@ -37,6 +38,10 @@ func (l *Log) processBatches() {
 			TeCertificate: nil,
 		}
 		log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
+		/**
+		This is a provisional update to the current data before the current log entry has been certified.
+		*/
+		go l.updateDBDict(currentLogIndex)
 	}
 }
 
@@ -47,9 +52,23 @@ func (l *Log) certify() {
 		if _, ok := l.logEntry[logIndex]; ok {
 			if l.logEntry[logIndex].TeCertificate == nil {
 				l.logEntry[logIndex].TeCertificate = certificate
+				/**
+				Update DB dictionary after certification of the data from TE.
+				*/
+				go l.updateDBDict(logIndex)
 			} else {
 				log.Printf("Possible duplicate certificate received for index %v, %v", logIndex, certificate)
 			}
 		}
 	}
+}
+
+func (l *Log) updateDBDict(logIndex int32) {
+	entry := l.logEntry[logIndex].Data.Data
+	for _, data := range entry {
+		for _, kv := range data.Data {
+			l.dbDict[string(kv.Key)] = kv.Value
+		}
+	}
+
 }
