@@ -195,7 +195,7 @@ func (t *TrustedEntityService) getEdgeClientObject() *EdgeClient {
 func (t *TrustedEntityService) verifySignature(nodeID string, messageHash []byte, signature []byte) (valid bool) {
 	if edgeNodeConfig, ok := t.registeredNodes[nodeID]; ok {
 		rawPublicKey := GetPublicKeyFromBytes(edgeNodeConfig.PublicKey.RawPublicKey)
-		valid = VerifyMessage(messageHash, signature, *rawPublicKey)
+		valid = VerifyMessage(messageHash, signature, rawPublicKey)
 	}
 	return valid
 }
