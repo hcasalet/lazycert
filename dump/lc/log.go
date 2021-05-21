@@ -1,14 +1,19 @@
 package lc
 
-import "log"
+import (
+	"crypto/sha256"
+	"github.com/golang/protobuf/proto"
+	"log"
+)
 
 type Log struct {
-	LogIndex    int32
-	logEntry    map[int32]*LogEntry
-	BatchedData chan []*CommitData
-	Certificate chan *Certificate
-	dbDict      map[string][]byte
-	config      *Config
+	LogIndex              int32
+	logEntry              map[int32]*LogEntry
+	BatchedData           chan []*CommitData
+	Certificate           chan *Certificate
+	logEntryUpdateChannel chan *LogEntry
+	dbDict                map[string][]byte
+	config                *Config
 }
 
 func NewLog(cfg *Config) *Log {
@@ -37,18 +42,26 @@ func (l *Log) processBatches() {
 	}
 }
 
-func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) {
+func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) (status bool) {
 	log.Printf("Processing new batch for log index: %v", currentLogIndex)
 	log.Printf("Batch contains %v transactions", len(batch))
-	entry := &LogEntry{
-		LogID: currentLogIndex,
-		Data: &BlockInfo{
+	if _, ok := l.logEntry[currentLogIndex]; !ok {
+		entry := &LogEntry{
 			LogID: currentLogIndex,
-			Data:  batch,
-		},
-		TeCertificate: nil,
+			Data: &BlockInfo{
+				LogID: currentLogIndex,
+				Data:  batch,
+			},
+			TeCertificate: nil,
+		}
+		l.logEntry[currentLogIndex] = entry
+		log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
+		status = true
+	} else {
+		log.Printf("A log entry at %v already exists: %v", currentLogIndex, l.logEntry[currentLogIndex])
+		status = false
 	}
-	log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
+	return status
 }
 
 func (l *Log) certify() {
@@ -84,4 +97,37 @@ func (l *Log) Read(key string) ([]byte, bool) {
 		status = ok
 	}
 	return l.dbDict[key], status
+}
+
+func (l *Log) SetLogEntryUpdateChannel(c chan *LogEntry) {
+	l.logEntryUpdateChannel = c
+}
+
+func ConvertToProposeData(l LogEntry, n *NodeInfo) *ProposeData {
+	p := &ProposeData{
+		Header: &Header{
+			Node: n,
+		},
+		LogBlock: l.Data,
+	}
+	return p
+}
+
+func ConvertToAcceptMsg(l *LogEntry, n *NodeInfo, term int32, k *Key) (a *AcceptMsg) {
+	bytes, err := proto.Marshal(l.Data)
+	acceptHash := sha256.Sum256(bytes)
+	a = nil
+	if err != nil {
+		signature := k.SignMessage(bytes)
+		a = &AcceptMsg{
+			Header: &Header{
+				Node: n,
+			},
+			AcceptHash: acceptHash[0:32],
+			Signature:  signature,
+			Block:      nil,
+			TermID:     term,
+		}
+	}
+	return a
 }

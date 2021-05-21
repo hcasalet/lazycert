@@ -1,37 +1,42 @@
 package lc
 
 import (
+	"errors"
 	"golang.org/x/net/context"
 	"log"
 )
 
 type EdgeService struct {
-	key         *Key
-	log         *Log
-	leader      *LeaderConfig
-	currentTerm int32
-	config      *Config
-	teClient    *TEClient
-	regConfig   *RegistrationConfig
-	lc          *LeaderClient
-	iAmLeader   bool
-	queue       *TimedQueue
+	key                *Key
+	log                *Log
+	leader             *LeaderConfig
+	currentTerm        int32
+	config             *Config
+	teClient           *TEClient
+	regConfig          *RegistrationConfig
+	lc                 *LeaderClient
+	iAmLeader          bool
+	queue              *TimedQueue
+	newLogEntryChannel chan *LogEntry
 }
 
 func NewEdgeService(configuration *Config) *EdgeService {
 	key := NewKey(configuration.PrivateKeyFileName)
 	tec := NewTEClient(configuration.TEAddr)
 	edgeService := &EdgeService{
-		key:         key,
-		leader:      nil,
-		currentTerm: 0,
-		config:      configuration,
-		teClient:    tec,
-		lc:          nil,
-		iAmLeader:   false,
-		log:         NewLog(configuration),
+		key:                key,
+		leader:             nil,
+		currentTerm:        0,
+		config:             configuration,
+		teClient:           tec,
+		lc:                 nil,
+		iAmLeader:          false,
+		log:                NewLog(configuration),
+		newLogEntryChannel: make(chan *LogEntry),
 	}
+	//edgeService.log.SetLogEntryUpdateChannel(edgeService.newLogEntryChannel)
 	edgeService.queue = NewTimedQueue(configuration.Epoch.Duration, configuration.Epoch.MaxSize, edgeService.log.BatchedData)
+	go edgeService.waitForLogEntryUpdate()
 	return edgeService
 }
 
@@ -41,7 +46,6 @@ func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dumm
 	} else {
 		e.lc.sendCommitDataToLeader(commitData)
 	}
-
 	return &Dummy{}, nil
 }
 
@@ -58,10 +62,16 @@ func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, err
 	}
 }
 
-func (e *EdgeService) Propose(ctx context.Context, data *ProposeData) (*Dummy, error) {
+func (e *EdgeService) Propose(ctx context.Context, data *ProposeData) (d *Dummy, err error) {
 	// TODO: validate header to ensure data was received from the right leader.
-	go e.log.Propose(data.LogBlock.LogID, data.LogBlock.Data)
-	return &Dummy{}, nil
+	if e.log.Propose(data.LogBlock.LogID, data.LogBlock.Data) {
+		a := ConvertToAcceptMsg(e.log.logEntry[data.LogBlock.LogID], &e.config.Node, e.currentTerm, e.key)
+		e.teClient.SendAccept(a)
+		err = nil
+	} else {
+		err = errors.New("cannot add duplicate propose data")
+	}
+	return &Dummy{}, err
 }
 
 func (e *EdgeService) HeartBeat(ctx context.Context, info *HeartBeatInfo) (*Dummy, error) {
@@ -76,16 +86,22 @@ func (e *EdgeService) Certification(ctx context.Context, certificate *Certificat
 func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConfig) (*Dummy, error) {
 	e.leader = leaderConfig
 	e.currentTerm = leaderConfig.TermID
+	e.checkLeadershipStatusAndConnect(leaderConfig)
+	return &Dummy{}, nil
+}
+
+func (e *EdgeService) checkLeadershipStatusAndConnect(leaderConfig *LeaderConfig) {
 	if string(e.key.GetPublicKey()) == string(leaderConfig.LeaderPubKey.RawPublicKey) {
 		e.iAmLeader = true
+		e.log.SetLogEntryUpdateChannel(e.newLogEntryChannel)
 	}
 	if !e.iAmLeader {
+		e.log.SetLogEntryUpdateChannel(nil)
 		if e.lc == nil {
 			e.lc = NewLeaderClient()
 		}
 		go e.lc.ConnectToLeader(e.leader.Node)
 	}
-	return &Dummy{}, nil
 }
 
 func (e *EdgeService) RegisterWithTE() {
@@ -97,9 +113,15 @@ func (e *EdgeService) RegisterWithTE() {
 		e.leader = regConfig.ClusterLeader
 		e.currentTerm = regConfig.ClusterLeader.TermID
 		e.regConfig = regConfig
-		e.lc = NewLeaderClient()
-		e.lc.ConnectToLeader(e.leader.Node)
+		e.checkLeadershipStatusAndConnect(regConfig.ClusterLeader)
 	} else {
 		log.Printf("Error while registering with TE: %v", err)
+	}
+}
+
+func (e *EdgeService) waitForLogEntryUpdate() {
+	for l := range e.newLogEntryChannel {
+		ConvertToProposeData(*l, &e.config.Node)
+
 	}
 }

@@ -51,6 +51,7 @@ func (e *EdgeClient) CloseAllConnections() {
 
 func (e *EdgeClient) BroadcastLeaderStatus(leader LeaderConfig) {
 	for addr, client := range e.clientMap {
+		log.Printf("Sending Leader status to: %v", addr)
 		if client != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			_, err := (*client).LeaderStatus(ctx, &leader)
@@ -65,11 +66,25 @@ func (e *EdgeClient) BroadcastLeaderStatus(leader LeaderConfig) {
 
 func (e *EdgeClient) BroadcastCertificate(certificate *Certificate) {
 	for addr, client := range e.clientMap {
+		log.Printf("Sending Certificate to: %v", addr)
 		if client != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			_, err := (*client).Certification(ctx, certificate)
 			if err != nil {
-				log.Printf("Error occurred when sending leader status to '%v': %v", addr, err)
+				log.Printf("Error occurred when sending certificate to '%v': %v", addr, err)
+			}
+			cancel()
+		}
+	}
+}
+func (e *EdgeClient) SendProposal(p *ProposeData) {
+	for addr, client := range e.clientMap {
+		log.Printf("Sending propose data to: %v", addr)
+		if client != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+			_, err := (*client).Propose(ctx, p)
+			if err != nil {
+				log.Printf("Error occurred when sending Propose data to '%v': %v", addr, err)
 			}
 			cancel()
 		}

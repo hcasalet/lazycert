@@ -2,11 +2,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
-	"math"
 	"net"
 )
 
@@ -44,20 +42,6 @@ func ReadArgs() *lc.Config {
 	id := flag.String("id", "1", "EdgeNode Identifier.")
 	flag.Parse()
 	ymlConfig := lc.NewYamlConfig()
-	port := ymlConfig.Viper.GetString("edge_nodes." + *id + ".port")
-	host := ymlConfig.Viper.GetString("edge_nodes." + *id + ".host")
-	tehost := ymlConfig.Viper.GetString("te.host")
-	teport := ymlConfig.Viper.GetString("te.port")
-	epochDuration := ymlConfig.Viper.GetInt("epoch.duration")
-	epochMaxSize := ymlConfig.Viper.GetInt("epoch.maxsize")
-	nodeCount := len(ymlConfig.Viper.GetStringMap("edge_nodes"))
-	config := lc.NewConfig("E_" + *id)
-	config.TEAddr = fmt.Sprintf("%v:%v", tehost, teport)
-	config.Node.Port = port
-	config.Node.Ip = host
-	config.Node.Uuid = *id
-	config.F = int(math.Ceil(float64(nodeCount) / 2))
-	config.Epoch.Duration = epochDuration
-	config.Epoch.MaxSize = epochMaxSize
+	config := ymlConfig.SetupEdgeConfig(id)
 	return config
 }

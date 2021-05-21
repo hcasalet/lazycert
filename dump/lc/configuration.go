@@ -18,6 +18,7 @@ type Config struct {
 	TEAddr             string
 	Node               NodeInfo
 	Epoch              EpochConfig
+	ClusterNodes       []NodeInfo
 }
 
 func NewConfig(prefix string) *Config {
