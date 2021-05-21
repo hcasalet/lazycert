@@ -43,3 +43,19 @@ func (t *TEClient) SendAccept(a *AcceptMsg) {
 		log.Printf("Error occrred at TE for accept message: %v", a)
 	}
 }
+
+func (t *TEClient) SendSelfPromote(node NodeInfo, term int32, publicKey []byte) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	edgeConfig := &EdgeNodeConfig{
+		PublicKey: &PublicKey{
+			RawPublicKey: publicKey,
+		},
+		Node:   &node,
+		TermID: term,
+	}
+	_, err := t.client.SelfPromotion(ctx, edgeConfig)
+	if err != nil {
+		log.Printf("Self promotion failed.")
+	}
+}

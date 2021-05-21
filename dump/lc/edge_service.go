@@ -123,6 +123,9 @@ func (e *EdgeService) RegisterWithTE() {
 		e.leader = regConfig.ClusterLeader
 		e.currentTerm = regConfig.ClusterLeader.TermID
 		e.regConfig = regConfig
+		if e.currentTerm == 0 {
+			go e.teClient.SendSelfPromote(e.config.Node, e.currentTerm, e.key.GetPublicKey())
+		}
 		e.checkLeadershipStatusAndConnect(regConfig.ClusterLeader)
 	} else {
 		log.Printf("Error while registering with TE: %v", err)
