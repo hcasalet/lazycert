@@ -136,10 +136,10 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 }
 
 func getNodeID(ctx context.Context, srcPort string) string {
-	peer, _ := peer.FromContext(ctx)
-	log.Printf("Received registration request from %v", peer)
+	p, _ := peer.FromContext(ctx)
+	log.Printf("Received registration request from %v", p)
 	var srcIP string
-	switch addr := peer.Addr.(type) {
+	switch addr := p.Addr.(type) {
 	case *net.TCPAddr:
 		srcIP = addr.IP.String()
 	}
@@ -164,7 +164,7 @@ func (t *TrustedEntityService) checkSelfPromotion() {
 			}
 		}
 		var newLeaderIndex int
-		for newLeaderIndex = leaderIndex; newLeaderIndex != leaderIndex; {
+		for newLeaderIndex = leaderIndex; newLeaderIndex == leaderIndex; {
 			newLeaderIndex = rand.Intn(len(votes))
 		}
 		newLeader := t.registeredNodes[votes[newLeaderIndex]]
@@ -175,10 +175,12 @@ func (t *TrustedEntityService) checkSelfPromotion() {
 			Node: &NodeInfo{
 				Ip:   newLeader.Node.Ip,
 				Port: newLeader.Node.Port,
+				Uuid: newLeader.Node.Uuid,
 			},
 			LeaderPubKey: &PublicKey{RawPublicKey: newLeader.PublicKey.RawPublicKey},
 		}
 		t.termID = nextTermID
+		t.registrationConfiguration.ClusterLeader = &t.leaderConfig
 		t.broadCastLeaderConfig()
 	} else {
 		log.Printf("Have not received enough votes to make leader selection.")
@@ -193,7 +195,7 @@ func (t *TrustedEntityService) broadCastLeaderConfig() {
 
 func (t *TrustedEntityService) getEdgeClientObject() *EdgeClient {
 	edgeClient := NewEdgeClient()
-	for k, _ := range t.registeredNodes {
+	for k := range t.registeredNodes {
 		edgeClient.AddConnection(k)
 	}
 	return edgeClient
@@ -249,7 +251,7 @@ func (t *TrustedEntityService) cerfityLogPosition(logID int32, voteMap map[strin
 }
 
 func (t *TrustedEntityService) countVotes(voteMap map[string]Vote) (int, []byte) {
-	var voteCount map[string]int
+	voteCount := make(map[string]int)
 	count := 0
 	var validAcceptHash []byte
 	for _, vote := range voteMap {

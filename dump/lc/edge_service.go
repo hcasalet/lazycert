@@ -101,7 +101,9 @@ func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConf
 }
 
 func (e *EdgeService) checkLeadershipStatusAndConnect(leaderConfig *LeaderConfig) {
+	log.Printf("Received leader configuration: %v", leaderConfig)
 	if string(e.key.GetPublicKey()) == string(leaderConfig.LeaderPubKey.RawPublicKey) {
+		log.Printf("Now I am the leader.")
 		e.iAmLeader = true
 		e.log.SetLogEntryUpdateChannel(e.newLogEntryChannel)
 	}
