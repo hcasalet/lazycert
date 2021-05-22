@@ -39,8 +39,13 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 			TePublicKey: &PublicKey{
 				RawPublicKey: privatekey.GetPublicKey(),
 			},
-			ClusterLeader: nil,
-			LogPosition:   0,
+			ClusterLeader: &LeaderConfig{
+				ID:           "",
+				TermID:       0,
+				Node:         nil,
+				LeaderPubKey: nil,
+			},
+			LogPosition: 0,
 		},
 		configuration:   config,
 		voteMap:         make(map[int32]map[string]Vote),
@@ -98,10 +103,12 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 		If not, log the request.
 		*/
 	case nextTerm:
-		log.Println("Edge node wants to initiate self promotion for the next term.")
+		log.Printf("Edge node wants to initiate self promotion for the next term: %v", nextTerm)
+		log.Printf("SelfPromotionList: %v", t.selfPromotions[nextTerm])
 		if t.selfPromotions[nextTerm] == nil {
 			t.selfPromotions[nextTerm] = make([]string, 1)
-			t.selfPromotions[t.termID][0] = nodeID
+			t.selfPromotions[nextTerm][0] = nodeID
+			log.Printf("SelfPromotionList: %v", t.selfPromotions[nextTerm])
 		} else {
 			found := false
 			for _, id := range t.selfPromotions[nextTerm] {

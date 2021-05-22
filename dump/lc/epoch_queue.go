@@ -79,8 +79,8 @@ func (q *TimedQueue) processEpoch(n int) {
 		q.receiver <- epochQueue
 		q.epoch += 1
 		q.counter = 0
-	} else {
+	} /*else {
 		log.Printf("Waiting for epoch to fill up. %v", n)
-	}
+	}*/
 	q.mutex.Unlock()
 }

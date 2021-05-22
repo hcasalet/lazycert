@@ -42,17 +42,22 @@ func (y *YamlConfig) SetupEdgeConfig(id *string) *Config {
 	config.F = int(math.Ceil(float64(nodeCount) / 2))
 	config.Epoch.Duration = epochDuration
 	config.Epoch.MaxSize = epochMaxSize
-	config.ClusterNodes = y.GetAllClusterNodes(id)
+	config.ClusterNodes = y.getAllClusterNodes(*id)
 	return config
 }
 
-func (y *YamlConfig) GetAllClusterNodes(exid *string) []NodeInfo {
+func (y *YamlConfig) getAllClusterNodes(exid string) []NodeInfo {
 	edgeNodes := y.Viper.GetStringMap("edge_nodes")
-	nodes, i := make([]NodeInfo, len(edgeNodes)-1), 0
+
+	cap := len(edgeNodes) - 1
+	if exid == "0" {
+		cap += 1
+	}
+	nodes, i := make([]NodeInfo, cap), 0
 	fmt.Println(edgeNodes)
 
 	for k := range edgeNodes {
-		if k != *exid {
+		if k != exid {
 			n := NodeInfo{
 				Ip:   y.Viper.GetString("edge_nodes." + k + ".host"),
 				Port: y.Viper.GetString("edge_nodes." + k + ".port"),
@@ -77,5 +82,6 @@ func (y *YamlConfig) GetTEConfig() *Config {
 	config.Node.Ip = tehost
 	config.Node.Uuid = "te"
 	config.F = int(math.Ceil(float64(nodeCount) / 2))
+	config.ClusterNodes = y.getAllClusterNodes("0")
 	return config
 }

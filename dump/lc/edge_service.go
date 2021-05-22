@@ -120,13 +120,13 @@ func (e *EdgeService) RegisterWithTE() {
 	}, e.config.Node, e.currentTerm)
 	if err == nil {
 		log.Printf("Registered with TE. Registration configuration %v", regConfig)
-		if regConfig.ClusterLeader != nil {
+		e.currentTerm = regConfig.ClusterLeader.TermID
+		if regConfig.ClusterLeader.Node != nil {
 			e.leader = regConfig.ClusterLeader
-			e.currentTerm = regConfig.ClusterLeader.TermID
 			e.checkLeadershipStatusAndConnect(regConfig.ClusterLeader)
 		} else {
-			log.Printf("Leader does not exist. Persorming self promotion.")
-			go e.teClient.SendSelfPromote(e.config.Node, e.currentTerm, e.key.GetPublicKey())
+			log.Printf("Leader does not exist. Performing self promotion.")
+			go e.teClient.SendSelfPromote(e.config.Node, e.currentTerm+1, e.key.GetPublicKey())
 		}
 		e.regConfig = regConfig
 	} else {

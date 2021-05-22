@@ -41,6 +41,7 @@ func main() {
 func ReadArgs() *lc.Config {
 	id := flag.String("id", "1", "EdgeNode Identifier.")
 	flag.Parse()
+	log.Printf("Node UUID is %v", *id)
 	ymlConfig := lc.NewYamlConfig()
 	config := ymlConfig.SetupEdgeConfig(id)
 	return config
