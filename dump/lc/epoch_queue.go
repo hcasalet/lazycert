@@ -66,7 +66,7 @@ func (q *TimedQueue) Insert(data *CommitData) {
 
 func (q *TimedQueue) processEpoch(n int) {
 	q.mutex.Lock()
-	if _, ok := q.processed[n]; !ok && q.counter >= q.cap {
+	if _, ok := q.processed[n]; !ok && q.counter > 0 {
 		log.Printf("Processing epoch %v", n)
 		q.processed[n] = true
 		q.ticker.Reset(q.d)

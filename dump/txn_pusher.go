@@ -13,7 +13,7 @@ func main() {
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial("localhost:35001", opts...)
+	conn, err := grpc.Dial("localhost:35005", opts...)
 	if err != nil {
 		log.Fatalf("Could not connect to TE server: %v", err)
 	}
@@ -26,12 +26,12 @@ func main() {
 	//var data []*lc.KeyVal
 	response, err := edgeNodeClient.Commit(ctx, &lc.CommitData{
 		Data: []*lc.KeyVal{&lc.KeyVal{
-			Key:   []byte("1"),
-			Value: []byte("2"),
+			Key:   []byte("3"),
+			Value: []byte("4"),
 		}},
 	})
 	if err != nil {
-		log.Fatalf("Error when registering with TE: %v", err)
+		log.Fatalf("Error in sending txn to edge node.: %v", err)
 	}
-	log.Printf("Response from TE Server Registration: %v", response)
+	log.Printf("Response from Edge node: %v", response)
 }

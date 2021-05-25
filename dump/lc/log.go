@@ -22,6 +22,7 @@ func NewLog(cfg *Config) *Log {
 		logEntry:              make(map[int32]*LogEntry),
 		BatchedData:           make(chan []*CommitData),
 		Certificate:           make(chan *Certificate),
+		dbDict:                make(map[string][]byte),
 		config:                cfg,
 		logEntryUpdateChannel: nil,
 	}
@@ -32,7 +33,7 @@ func NewLog(cfg *Config) *Log {
 
 func (l *Log) processBatches() {
 	for batch := range l.BatchedData {
-
+		log.Printf("received txn batch: %v\n", batch)
 		l.LogIndex += 1
 		currentLogIndex := l.LogIndex
 		l.Propose(currentLogIndex, batch)
@@ -118,19 +119,23 @@ func ConvertToProposeData(l LogEntry, n *NodeInfo) *ProposeData {
 }
 
 func ConvertToAcceptMsg(l *LogEntry, n *NodeInfo, term int32, k *Key) (a *AcceptMsg) {
+	log.Printf("Marshalling blockinfo: %v\n", l.Data)
 	bytes, err := proto.Marshal(l.Data)
 	acceptHash := sha256.Sum256(bytes)
 	a = nil
-	if err != nil {
-		signature := k.SignMessage(bytes)
+	if err == nil {
+		signature := k.SignMessage(acceptHash[:])
 		a = &AcceptMsg{
 			Header: &Header{
 				Node: n,
 			},
-			AcceptHash: acceptHash[0:32],
+			AcceptHash: acceptHash[:],
 			Signature:  signature,
-			Block:      nil,
-			TermID:     term,
+			Block: &BlockInfo{
+				LogID: l.LogID,
+				Data:  nil,
+			},
+			TermID: term,
 		}
 	}
 	return a

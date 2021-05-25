@@ -2,10 +2,8 @@ package lc
 
 import (
 	"golang.org/x/net/context"
-	"google.golang.org/grpc/peer"
 	"log"
 	"math/rand"
-	"net"
 	"sort"
 )
 
@@ -56,19 +54,20 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 }
 
 func (t *TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*RegistrationConfig, error) {
-	nodeID := getNodeID(ctx, edgeNodeConfig.Node.Port)
+	nodeID := getNodeID(ctx, edgeNodeConfig.Node)
 	t.registeredNodes[nodeID] = edgeNodeConfig
 	return t.registrationConfiguration, nil
 }
 
 func (t *TrustedEntityService) Accept(ctx context.Context, acc *AcceptMsg) (*Dummy, error) {
+	nodeID := getNodeID(ctx, acc.Header.Node)
+	log.Printf("Received accept message: %v,From %v\n", acc, nodeID)
 	if acc.TermID == t.termID {
 		logID := acc.Block.LogID
 		if _, ok := t.voteMap[logID]; !ok {
 			t.voteMap[logID] = make(map[string]Vote)
 			t.certifiedLogIDs[logID] = false
 		}
-		nodeID := getNodeID(ctx, acc.Header.Node.Port)
 		if _, ok := t.voteMap[logID][nodeID]; !ok {
 			if t.verifySignature(nodeID, acc.AcceptHash, acc.Signature) {
 				t.voteMap[logID][nodeID] = Vote{
@@ -92,7 +91,7 @@ func (t *TrustedEntityService) GetCertificate(ctx context.Context, header *Heade
 }
 
 func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig *EdgeNodeConfig) (*Dummy, error) {
-	nodeID := getNodeID(ctx, edgeNodeConfig.Node.Port)
+	nodeID := getNodeID(ctx, edgeNodeConfig.Node)
 	log.Printf("Received self promotion from: %v", nodeID)
 	nextTerm := t.termID + 1
 	switch edgeNodeConfig.TermID {
@@ -135,8 +134,8 @@ func (t *TrustedEntityService) SelfPromotion(ctx context.Context, edgeNodeConfig
 	return &Dummy{}, nil
 }
 
-func getNodeID(ctx context.Context, srcPort string) string {
-	p, _ := peer.FromContext(ctx)
+func getNodeID(ctx context.Context, n *NodeInfo) string {
+	/*p, _ := peer.FromContext(ctx)
 	log.Printf("Received registration request from %v", p)
 	var srcIP string
 	switch addr := p.Addr.(type) {
@@ -144,8 +143,8 @@ func getNodeID(ctx context.Context, srcPort string) string {
 		srcIP = addr.IP.String()
 	}
 
-	log.Printf("EdgeNode IP:Port %v:%v", srcIP, srcPort)
-	nodeID := srcIP + ":" + srcPort
+	log.Printf("EdgeNode IP:Port %v:%v", srcIP, srcPort)*/
+	nodeID := n.Ip + ":" + n.Port
 
 	log.Printf("Node Identifier: %v", nodeID)
 	return nodeID

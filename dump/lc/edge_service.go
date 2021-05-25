@@ -41,7 +41,9 @@ func NewEdgeService(configuration *Config) *EdgeService {
 }
 
 func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dummy, error) {
+	log.Printf("Received data to commit: %v", commitData)
 	if e.iAmLeader {
+		log.Printf("Inserting data into commit queue.")
 		e.queue.Insert(commitData)
 	} else {
 		e.lc.sendCommitDataToLeader(commitData)
@@ -102,7 +104,7 @@ func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConf
 
 func (e *EdgeService) checkLeadershipStatusAndConnect(leaderConfig *LeaderConfig) {
 	log.Printf("Received leader configuration: %v", leaderConfig)
-	if string(e.key.GetPublicKey()) == string(leaderConfig.LeaderPubKey.RawPublicKey) {
+	if e.config.Node.Uuid == leaderConfig.Node.Uuid {
 		log.Printf("Now I am the leader.")
 		e.iAmLeader = true
 		e.log.SetLogEntryUpdateChannel(e.newLogEntryChannel)
@@ -143,6 +145,7 @@ func (e *EdgeService) waitForLogEntryUpdate() {
 		clusterClient.AddConnection(addr)
 	}
 	for l := range e.newLogEntryChannel {
+		go e.teClient.SendAccept(ConvertToAcceptMsg(l, &e.config.Node, e.currentTerm, e.key))
 		p := ConvertToProposeData(*l, &e.config.Node)
 		clusterClient.SendProposal(p)
 	}
