@@ -215,14 +215,16 @@ func (t *TrustedEntityService) checkVotes() {
 			sortedLogIDs = append(sortedLogIDs, int(k))
 		}
 	}
+	log.Printf("Certified logIDs: %v", t.certifiedLogIDs)
 	sort.Ints(sortedLogIDs)
-	for logID := range sortedLogIDs {
+	for _, logID := range sortedLogIDs {
 		logIDint32 := int32(logID)
 		if voteMap, ok := t.voteMap[logIDint32]; ok {
 			count, acceptHash := t.countVotes(voteMap)
 			if count >= t.configuration.F+1 {
 				t.cerfityLogPosition(logIDint32, voteMap, acceptHash)
 				t.certifiedLogIDs[logIDint32] = true
+				log.Printf("Broadcasting certificates for logID: %v\n", logIDint32)
 				t.broadCastCertificate(logIDint32)
 			} else {
 				break
@@ -234,7 +236,7 @@ func (t *TrustedEntityService) checkVotes() {
 
 func (t *TrustedEntityService) cerfityLogPosition(logID int32, voteMap map[string]Vote, hash []byte) {
 	if _, ok := t.certificates[logID]; !ok {
-		teSignature := t.privateKey.SignMessage(hash)
+		teSignature := t.privateKey.Sign(hash)
 		votes := make([]*Vote, len(voteMap))
 		for _, v := range voteMap {
 			votes = append(votes, &v)

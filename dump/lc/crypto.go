@@ -73,13 +73,20 @@ func (k *Key) GetPublicKey() []byte {
 	return publicKeyInBytes
 }
 
-func (k *Key) SignMessage(message []byte) (signature []byte) {
-	rnd := rand.Reader
+func (k *Key) SignMessage(message []byte) (hashedMessage [32]byte, signature []byte) {
+
 	signature = nil
-	hashedMessage := sha256.Sum256(message)
-	signature, err := rsa.SignPKCS1v15(rnd, k.privateKey, crypto.SHA256, hashedMessage[:])
+	hashedMessage = sha256.Sum256(message)
+	signature = k.Sign(hashedMessage[:])
+	return hashedMessage, signature
+}
+
+func (k *Key) Sign(hashedMessage []byte) (signature []byte) {
+	rnd := rand.Reader
+	signature, err := rsa.SignPKCS1v15(rnd, k.privateKey, crypto.SHA256, hashedMessage)
 	if err != nil {
 		log.Printf("Error occurred while signing message: %v ", err)
+		return nil
 	} else {
 		log.Printf("Signature generated.")
 	}
@@ -87,7 +94,7 @@ func (k *Key) SignMessage(message []byte) (signature []byte) {
 }
 
 func VerifyMessage(hashedMessage []byte, signature []byte, publicKey *rsa.PublicKey) (valid bool) {
-	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashedMessage[:], signature)
+	err := rsa.VerifyPKCS1v15(publicKey, crypto.SHA256, hashedMessage, signature)
 	if err != nil {
 		log.Printf("Error during signature verification: %v", err)
 		valid = false

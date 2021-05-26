@@ -1,7 +1,6 @@
 package lc
 
 import (
-	"crypto/sha256"
 	"github.com/golang/protobuf/proto"
 	"log"
 )
@@ -120,16 +119,15 @@ func ConvertToProposeData(l LogEntry, n *NodeInfo) *ProposeData {
 
 func ConvertToAcceptMsg(l *LogEntry, n *NodeInfo, term int32, k *Key) (a *AcceptMsg) {
 	log.Printf("Marshalling blockinfo: %v\n", l.Data)
-	bytes, err := proto.Marshal(l.Data)
-	acceptHash := sha256.Sum256(bytes)
+	messageBytes, err := proto.Marshal(l.Data)
 	a = nil
 	if err == nil {
-		signature := k.SignMessage(acceptHash[:])
+		hashedMessage, signature := k.SignMessage(messageBytes)
 		a = &AcceptMsg{
 			Header: &Header{
 				Node: n,
 			},
-			AcceptHash: acceptHash[:],
+			AcceptHash: hashedMessage[:],
 			Signature:  signature,
 			Block: &BlockInfo{
 				LogID: l.LogID,

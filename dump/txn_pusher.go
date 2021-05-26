@@ -13,7 +13,7 @@ func main() {
 
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial("localhost:35005", opts...)
+	conn, err := grpc.Dial("localhost:35004", opts...)
 	if err != nil {
 		log.Fatalf("Could not connect to TE server: %v", err)
 	}
@@ -24,12 +24,15 @@ func main() {
 	defer cancel()
 
 	//var data []*lc.KeyVal
+	starttime := time.Now()
 	response, err := edgeNodeClient.Commit(ctx, &lc.CommitData{
 		Data: []*lc.KeyVal{&lc.KeyVal{
 			Key:   []byte("3"),
 			Value: []byte("4"),
 		}},
 	})
+	duration := time.Since(starttime)
+	log.Printf("Response from edge node received in %v", duration.String())
 	if err != nil {
 		log.Fatalf("Error in sending txn to edge node.: %v", err)
 	}
