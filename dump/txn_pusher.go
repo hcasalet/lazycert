@@ -28,7 +28,7 @@ func main() {
 	response, err := edgeNodeClient.Commit(ctx, &lc.CommitData{
 		Data: []*lc.KeyVal{&lc.KeyVal{
 			Key:   []byte("3"),
-			Value: []byte("4"),
+			Value: []byte("8"),
 		}},
 	})
 	duration := time.Since(starttime)
@@ -37,4 +37,8 @@ func main() {
 		log.Fatalf("Error in sending txn to edge node.: %v", err)
 	}
 	log.Printf("Response from Edge node: %v", response)
+	log.Println("Read response from Edge node.")
+
+	readResponse, err := edgeNodeClient.Read(ctx, &lc.KeyVal{Key: []byte("3")})
+	log.Println(readResponse)
 }

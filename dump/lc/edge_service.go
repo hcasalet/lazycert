@@ -67,7 +67,9 @@ func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, err
 func (e *EdgeService) Propose(ctx context.Context, data *ProposeData) (d *Dummy, err error) {
 	// TODO: validate header to ensure data was received from the right leader.
 	if e.log.Propose(data.LogBlock.LogID, data.LogBlock.Data) {
-		a := ConvertToAcceptMsg(e.log.logEntry[data.LogBlock.LogID], &e.config.Node, e.currentTerm, e.key)
+		m, _ := e.log.logEntry.Get(data.LogBlock.LogID)
+		entry := m.(*LogEntry)
+		a := ConvertToAcceptMsg(entry, &e.config.Node, e.currentTerm, e.key)
 		e.teClient.SendAccept(a)
 		err = nil
 	} else {

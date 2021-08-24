@@ -1,13 +1,14 @@
 package lc
 
 import (
+	gq "github.com/enriquebris/goconcurrentqueue"
 	"log"
 	"sync"
 	"time"
 )
 
 type TimedQueue struct {
-	commitQueue    []*CommitData
+	//commitQueue    []*CommitData
 	ticker         *time.Ticker
 	cur            int
 	prev           int
@@ -19,12 +20,14 @@ type TimedQueue struct {
 	cap            int
 	d              time.Duration
 	processed      map[int]bool
+	queue          *gq.FIFO
 }
 
 func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 
 	t := &TimedQueue{
-		commitQueue:    make([]*CommitData, capacity*3),
+		//commitQueue:    make([]*CommitData, capacity*1000),
+		queue:          gq.NewFIFO(),
 		ticker:         nil,
 		cur:            0,
 		prev:           0,
@@ -43,7 +46,9 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 			select {
 			case <-t.ticker.C:
 				//log.Printf("Ticker: %v", e)
-				t.processEpoch(t.epoch)
+				t.mutex.Lock()
+				t.processEpoch(t.epoch, t.cap)
+				t.mutex.Unlock()
 				//log.Printf("commit data to process in this epoch: %v",)
 			}
 		}
@@ -53,27 +58,37 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 
 func (q *TimedQueue) Insert(data *CommitData) {
 	q.mutex.Lock()
-	q.commitQueue[q.cur] = data
-	q.cur = (q.cur + 1) % cap(q.commitQueue)
+	//q.commitQueue[q.cur] = data
+	q.queue.Enqueue(data)
+	//q.cur = (q.cur + 1) % cap(q.commitQueue)
 	q.counter += 1
 	capacityReached := q.counter >= q.cap
-	e := q.epoch
-	q.mutex.Unlock()
+
 	if capacityReached {
-		go q.processEpoch(e)
-	}
+		//q.mutex.Unlock()
+		e := q.epoch
+		q.counter = 0
+		q.processEpoch(e, q.cap)
+	} /* else {
+	}*/
+	q.mutex.Unlock()
 }
 
-func (q *TimedQueue) processEpoch(n int) {
-	q.mutex.Lock()
-	if _, ok := q.processed[n]; !ok && q.counter > 0 {
+func (q *TimedQueue) processEpoch(n int, count int) {
+	//q.mutex.Lock()
+	if _, ok := q.processed[n]; !ok && count > 0 && q.queue.GetLen() > 0 {
+		if q.queue.GetLen() < count {
+			count = q.queue.GetLen()
+		}
 		log.Printf("Processing epoch %v", n)
 		q.processed[n] = true
 		q.ticker.Reset(q.d)
-		epochQueue := make([]*CommitData, q.counter)
-		for i := 0; i < q.counter; i++ {
-			epochQueue[i] = q.commitQueue[(q.prev+i)%cap(q.commitQueue)]
-			q.commitQueue[(q.prev+i)%cap(q.commitQueue)] = nil
+		epochQueue := make([]*CommitData, count)
+		for i := 0; i < count; i++ {
+			v, _ := q.queue.Dequeue()
+			epochQueue[i] = v.(*CommitData)
+			//epochQueue[i] = q.commitQueue[(q.prev+i)%cap(q.commitQueue)]
+			//q.commitQueue[(q.prev+i)%cap(q.commitQueue)] = nil
 		}
 		q.prev = q.cur
 		q.receiver <- epochQueue
@@ -82,5 +97,5 @@ func (q *TimedQueue) processEpoch(n int) {
 	} /*else {
 		log.Printf("Waiting for epoch to fill up. %v", n)
 	}*/
-	q.mutex.Unlock()
+	//q.mutex.Unlock()
 }

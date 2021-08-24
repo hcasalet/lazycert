@@ -1,6 +1,7 @@
 package lc
 
 import (
+	hm "github.com/cornelk/hashmap"
 	"golang.org/x/net/context"
 	"log"
 	"math/rand"
@@ -15,10 +16,12 @@ type TrustedEntityService struct {
 	registrationConfiguration *RegistrationConfig
 	selfPromotions            map[int32][]string
 	configuration             *Config
-	voteMap                   map[int32]map[string]Vote
-	currentLogID              int32
-	certifiedLogIDs           map[int32]bool
-	certificates              map[int32]*Certificate
+	//voteMap                   map[int32]map[string]Vote
+	voteMap         hm.HashMap
+	currentLogID    int32
+	certifiedLogIDs hm.HashMap
+	//certifiedLogIDs map[int32]bool
+	certificates map[int32]*Certificate
 }
 
 func NewTrustedEntityService(config *Config) *TrustedEntityService {
@@ -46,9 +49,9 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 			LogPosition: 0,
 		},
 		configuration:   config,
-		voteMap:         make(map[int32]map[string]Vote),
+		voteMap:         hm.HashMap{},
 		currentLogID:    0,
-		certifiedLogIDs: make(map[int32]bool),
+		certifiedLogIDs: hm.HashMap{},
 		certificates:    make(map[int32]*Certificate),
 	}
 }
@@ -64,19 +67,35 @@ func (t *TrustedEntityService) Accept(ctx context.Context, acc *AcceptMsg) (*Dum
 	log.Printf("Received accept message: %v,From %v\n", acc, nodeID)
 	if acc.TermID == t.termID {
 		logID := acc.Block.LogID
-		if _, ok := t.voteMap[logID]; !ok {
-			t.voteMap[logID] = make(map[string]Vote)
-			t.certifiedLogIDs[logID] = false
+		if _, ok := t.voteMap.Get(logID); !ok {
+			//t.voteMap[logID] = make(map[string]Vote)
+			t.voteMap.Insert(logID, hm.HashMap{})
+			t.certifiedLogIDs.Insert(logID, false)
 		}
-		if _, ok := t.voteMap[logID][nodeID]; !ok {
-			if t.verifySignature(nodeID, acc.AcceptHash, acc.Signature) {
-				t.voteMap[logID][nodeID] = Vote{
-					Node:             acc.Header.Node,
-					AcceptHash:       acc.AcceptHash,
-					ReplicaSignature: acc.Signature,
+		v, ok := t.voteMap.Get(logID)
+		if ok {
+			voteMap := v.(hm.HashMap)
+			_, ok := voteMap.Get(nodeID)
+			if !ok {
+				if t.verifySignature(nodeID, acc.AcceptHash, acc.Signature) {
+					voteMap.Insert(nodeID, Vote{
+						Node:             acc.Header.Node,
+						AcceptHash:       acc.AcceptHash,
+						ReplicaSignature: acc.Signature,
+					})
+					t.voteMap.Insert(logID, voteMap)
 				}
 			}
 		}
+		//if _, ok := t.voteMap[logID][nodeID]; !ok {
+		//	if t.verifySignature(nodeID, acc.AcceptHash, acc.Signature) {
+		//		t.voteMap[logID][nodeID] = Vote{
+		//			Node:             acc.Header.Node,
+		//			AcceptHash:       acc.AcceptHash,
+		//			ReplicaSignature: acc.Signature,
+		//		}
+		//	}
+		//}
 		// TODO Check if this is the right thing to do.
 		if logID > t.currentLogID {
 			t.currentLogID = logID
@@ -210,20 +229,33 @@ func (t *TrustedEntityService) verifySignature(nodeID string, messageHash []byte
 
 func (t *TrustedEntityService) checkVotes() {
 	var sortedLogIDs []int
-	for k := range t.voteMap {
-		if done, ok := t.certifiedLogIDs[k]; ok && !done {
-			sortedLogIDs = append(sortedLogIDs, int(k))
+	for k := range t.voteMap.Iter() {
+		logID := k.Key.(int32)
+		value, ok := t.certifiedLogIDs.Get(logID)
+
+		if ok {
+			exists := value.(bool)
+			if exists {
+				sortedLogIDs = append(sortedLogIDs, int(logID))
+			}
 		}
 	}
-	log.Printf("Certified logIDs: %v", t.certifiedLogIDs)
+	//for k := range t.voteMap {
+	//	if done, ok := t.certifiedLogIDs[k]; ok && !done {
+	//		sortedLogIDs = append(sortedLogIDs, int(k))
+	//	}
+	//}
+	//log.Printf("Certified logIDs: %v", t.certifiedLogIDs)
 	sort.Ints(sortedLogIDs)
 	for _, logID := range sortedLogIDs {
 		logIDint32 := int32(logID)
-		if voteMap, ok := t.voteMap[logIDint32]; ok {
-			count, acceptHash := t.countVotes(voteMap)
+		if voteMap, ok := t.voteMap.Get(logIDint32); ok {
+			vm := voteMap.(hm.HashMap)
+			copiedVoteMap := t.copyVoteMap(vm)
+			count, acceptHash := t.countVotes(copiedVoteMap)
 			if count >= t.configuration.F+1 {
-				t.cerfityLogPosition(logIDint32, voteMap, acceptHash)
-				t.certifiedLogIDs[logIDint32] = true
+				t.cerfityLogPosition(logIDint32, copiedVoteMap, acceptHash)
+				t.certifiedLogIDs.Insert(logIDint32, true)
 				log.Printf("Broadcasting certificates for logID: %v\n", logIDint32)
 				t.broadCastCertificate(logIDint32)
 			} else {
@@ -273,4 +305,14 @@ func (t *TrustedEntityService) broadCastCertificate(logID int32) {
 	edgeClient := t.getEdgeClientObject()
 	edgeClient.BroadcastCertificate(t.certificates[logID])
 	edgeClient.CloseAllConnections()
+}
+
+func (t *TrustedEntityService) copyVoteMap(vm hm.HashMap) map[string]Vote {
+	clonedMap := make(map[string]Vote)
+	for k := range vm.Iter() {
+		key := k.Key.(string)
+		value := k.Value.(Vote)
+		clonedMap[key] = value
+	}
+	return clonedMap
 }
