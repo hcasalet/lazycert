@@ -1,22 +1,22 @@
 edge_nodes:
   1:
-    host: "localhost"
+    host: "10.52.2.167"
     port: "35001"
   2:
-    host: "localhost"
+    host: "10.52.3.14"
     port: "35002"
   3:
-    host: "localhost"
+    host: "10.52.0.201"
     port: "35003"
   4:
-    host: "localhost"
+    host: "10.52.0.168"
     port: "35004"
   5:
-    host: "localhost"
+    host: "10.52.2.139"
     port: "35005"
 
 te:
-  host: "localhost"
+  host: "10.52.3.227"
   port: "35000"
 
 epoch:
