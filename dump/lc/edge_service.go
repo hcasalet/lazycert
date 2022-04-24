@@ -41,9 +41,9 @@ func NewEdgeService(configuration *Config) *EdgeService {
 }
 
 func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dummy, error) {
-	log.Printf("Received data to commit: %v", commitData)
+	//log.Printf("Received data to commit: %v", commitData)
 	if e.iAmLeader {
-		log.Printf("Inserting data into commit queue.")
+		//log.Printf("Inserting data into commit queue.")
 		e.queue.Insert(commitData)
 	} else {
 		e.lc.sendCommitDataToLeader(commitData)
@@ -87,7 +87,7 @@ func (e *EdgeService) Certification(ctx context.Context, certificate *Certificat
 		certificate.AcceptHash,
 		certificate.TeSignature,
 		GetPublicKeyFromBytes(e.regConfig.TePublicKey.RawPublicKey)) {
-		log.Printf("Verfied certificate received from TE")
+		//log.Printf("Verfied certificate received from TE")
 		e.log.Certificate <- certificate
 		err = nil
 	} else {

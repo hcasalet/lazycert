@@ -37,8 +37,9 @@ func NewLog(cfg *Config) *Log {
 
 func (l *Log) processBatches() {
 	for batch := range l.BatchedData {
-		log.Printf("received txn batch: %v\n", batch)
+		//log.Printf("received txn batch: %v\n", batch)
 		l.LogIndex += 1
+		log.Printf("received txn batch for epoch: %v, batchsize: %v\n", l.LogIndex, len(batch))
 		currentLogIndex := l.LogIndex
 		l.Propose(currentLogIndex, batch)
 		if l.logEntryUpdateChannel != nil {
@@ -57,8 +58,8 @@ func (l *Log) processBatches() {
 }
 
 func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) (status bool) {
-	log.Printf("Processing new batch for log index: %v", currentLogIndex)
-	log.Printf("Batch contains %v transactions", len(batch))
+	//log.Printf("Processing new batch for log index: %v", currentLogIndex)
+	//log.Printf("Batch contains %v transactions", len(batch))
 	//if _, ok := l.logEntry[currentLogIndex]; !ok {
 	if _, ok := l.logEntry.Get(currentLogIndex); !ok {
 		entry := &LogEntry{
@@ -71,7 +72,7 @@ func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) (status bool) 
 		}
 		l.logEntry.Insert(currentLogIndex, entry)
 		//l.logEntry[currentLogIndex] = entry
-		log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
+		//log.Printf("Log Entry at index %v: %v", currentLogIndex, entry)
 		status = true
 	} else {
 		v, ok := l.logEntry.Get(currentLogIndex)
@@ -85,7 +86,7 @@ func (l *Log) Propose(currentLogIndex int32, batch []*CommitData) (status bool) 
 func (l *Log) certify() {
 	for certificate := range l.Certificate {
 		logIndex := certificate.LogID
-		log.Printf("Certified for log position %v", logIndex)
+		log.Printf("Received certificate for log position %v", logIndex)
 		//if _, ok := l.logEntry[logIndex]; ok {
 		if e, ok := l.logEntry.Get(logIndex); ok {
 			entry := e.(*LogEntry)

@@ -64,7 +64,7 @@ func (t *TrustedEntityService) Register(ctx context.Context, edgeNodeConfig *Edg
 
 func (t *TrustedEntityService) Accept(ctx context.Context, acc *AcceptMsg) (*Dummy, error) {
 	nodeID := getNodeID(ctx, acc.Header.Node)
-	log.Printf("Received accept message: %v,From %v\n", acc, nodeID)
+	//log.Printf("Received accept message: %v,From %v\n", acc, nodeID)
 	if acc.TermID == t.termID {
 		logID := acc.Block.LogID
 		if _, ok := t.voteMap.Get(logID); !ok {
