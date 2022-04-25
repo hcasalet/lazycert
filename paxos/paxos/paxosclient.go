@@ -74,6 +74,7 @@ func (e *PXClient) SendProposal(p *Ballot, votes int) (bool, uint32) {
 			cancel()
 		}
 	}
+	log.Printf("Received %v votes\n", votes)
 	if promiseCount >= votes {
 		status = true
 	}
@@ -83,12 +84,12 @@ func (e *PXClient) SendProposal(p *Ballot, votes int) (bool, uint32) {
 func (e *PXClient) SendAccept(data *Data) {
 
 	for addr, client := range e.clientMap {
-		log.Printf("Sending propose data to: %v", addr)
+		log.Printf("Sending Accept to: %v", addr)
 		if client != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			_, err := (*client).Accept(ctx, data)
 			if err != nil {
-				log.Printf("Error occurred when sending Propose data to '%v': %v", addr, err)
+				log.Printf("Error occurred when sending Accept to '%v': %v", addr, err)
 			}
 			cancel()
 		}
@@ -97,12 +98,12 @@ func (e *PXClient) SendAccept(data *Data) {
 
 func (e *PXClient) SendLearn(data *Data) {
 	for addr, client := range e.clientMap {
-		log.Printf("Sending propose data to: %v", addr)
+		log.Printf("Sending Learn to: %v", addr)
 		if client != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 			_, err := (*client).Learn(ctx, data)
 			if err != nil {
-				log.Printf("Error occurred when sending Propose data to '%v': %v", addr, err)
+				log.Printf("Error occurred when sending Learn to '%v': %v", addr, err)
 			}
 			cancel()
 		}

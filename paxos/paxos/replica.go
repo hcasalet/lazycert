@@ -4,6 +4,7 @@ import (
 	hm "github.com/cornelk/hashmap"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"golang.org/x/net/context"
+	"log"
 )
 
 type PaxosReplica struct {
@@ -38,6 +39,7 @@ func (p *PaxosReplica) Read(ctx context.Context, kv *KV) (*KV, error) {
 
 func (p *PaxosReplica) Write(ctx context.Context, kv *KV) (*KV, error) {
 	qclients := p.createPXClient()
+	p.ballotNumber += 1
 	ballot := &Ballot{
 		N: p.ballotNumber,
 	}
@@ -67,6 +69,7 @@ func (p *PaxosReplica) updateDataStore(kv *KV) {
 }
 
 func (p *PaxosReplica) Prepare(ctx context.Context, ballot *Ballot) (*Promise, error) {
+	log.Printf("Current ballot number: %v. Prepare received for ballot: %v\n", p.ballotNumber, ballot)
 	promise := &Promise{
 		Status: Status_FAIL,
 		B: &Ballot{
@@ -78,10 +81,12 @@ func (p *PaxosReplica) Prepare(ctx context.Context, ballot *Ballot) (*Promise, e
 		promise.Status = Status_PASS
 		p.ballotNumber = ballot.N
 	}
+	log.Printf("Returning promise: %v\n", promise)
 	return promise, nil
 }
 
 func (p *PaxosReplica) Accept(ctx context.Context, data *Data) (*Dummy, error) {
+	log.Printf("Ballot number: %v, Accept received for: %v", p.ballotNumber, data)
 	if data.B.N == p.ballotNumber {
 		p.updateDataStore(data.Kv)
 		go p.sendLearn(data)
