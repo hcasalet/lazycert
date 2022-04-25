@@ -17,8 +17,6 @@ func main() {
 	}
 	s := grpc.NewServer()
 	node := paxos.NewPaxosReplica(config)
-	//go edgeNode.RegisterWithTE()
-	//lc.RegisterEdgeNodeServer(s, edgeNode)
 	paxos.RegisterPaxosServer(s, node)
 	paxos.RegisterReplicaServer(s, node)
 	if err := s.Serve(lis); err != nil {
