@@ -27,13 +27,21 @@ message KV {
 message Ballot {
     uint32 n = 1;
 }
-message Promise {
 
+message Promise {
+    Status status = 1;
+    Ballot b = 2;
 }
+
 message Dummy {
 
 }
 service Replica {
     rpc Read (KV) returns (KV);
     rpc Write (KV) returns (KV);
+}
+
+enum Status {
+    PASS = 0;
+    FAIL = 1;
 }
