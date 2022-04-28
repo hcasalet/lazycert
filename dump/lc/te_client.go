@@ -36,7 +36,7 @@ func (t *TEClient) Register(key PublicKey, node NodeInfo, termID int32) (*Regist
 }
 
 func (t *TEClient) SendAccept(a *AcceptMsg) {
-	log.Printf("Sending accept message: %v\n", a)
+	//log.Printf("Sending accept message: %v\n", a)
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	_, err := t.client.Accept(ctx, a)
