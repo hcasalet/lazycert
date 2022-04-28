@@ -5,22 +5,33 @@ import (
 	"github.com/hcasalet/lazycert/dump/lc"
 	"golang.org/x/net/context"
 	"log"
+	"time"
 )
 
 type PaxosReplica struct {
-	ballotNumber uint32
-	dataStore    hm.HashMap
-	id           string
-	config       *lc.Config
+	ballotNumber    uint32
+	dataStore       hm.HashMap
+	id              string
+	config          *lc.Config
+	qclients        *PXClient
+	writerChannel   chan *KV
+	receiverChannel chan *KV
 }
 
 func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 	pr := &PaxosReplica{
-		ballotNumber: 0,
-		dataStore:    hm.HashMap{},
-		id:           c.Node.Uuid,
-		config:       c,
+		ballotNumber:    0,
+		dataStore:       hm.HashMap{},
+		id:              c.Node.Uuid,
+		config:          c,
+		writerChannel:   make(chan *KV),
+		receiverChannel: make(chan *KV),
 	}
+	log.Println("Setting up connections to other replicas.")
+	time.Sleep(time.Second * 10)
+	pr.qclients = pr.createPXClient()
+	log.Println("Connections setup.")
+	go pr.Writer()
 	return pr
 }
 
@@ -38,30 +49,38 @@ func (p *PaxosReplica) Read(ctx context.Context, kv *KV) (*KV, error) {
 }
 
 func (p *PaxosReplica) Write(ctx context.Context, kv *KV) (*KV, error) {
-	qclients := p.createPXClient()
-	p.ballotNumber += 1
-	ballot := &Ballot{
-		N: p.ballotNumber,
-	}
-	status, _ := qclients.SendProposal(ballot, p.config.F+1)
-	if status {
-		data := &Data{
-			B:  ballot,
-			Kv: kv,
+	p.writerChannel <- kv
+	rkv := <-p.receiverChannel
+	return rkv, nil
+}
+
+func (p *PaxosReplica) Writer() {
+	for kv := range p.writerChannel {
+
+		p.ballotNumber += 1
+		ballot := &Ballot{
+			N: p.ballotNumber,
 		}
-		qclients.SendAccept(data)
-		p.updateDataStore(kv)
+		status, _ := p.qclients.SendProposal(ballot, p.config.F+1)
+		if status {
+			data := &Data{
+				B:  ballot,
+				Kv: kv,
+			}
+			p.qclients.SendAccept(data)
+			p.updateDataStore(kv)
+		}
+		p.receiverChannel <- kv
 	}
-	return kv, nil
 }
 
 func (p *PaxosReplica) createPXClient() *PXClient {
-	qclients := NewPXClient()
+	pxClient := NewPXClient()
 	for _, c := range p.config.ClusterNodes {
 		addr := c.Ip + ":" + c.Port
-		qclients.AddConnection(addr)
+		pxClient.AddConnection(addr)
 	}
-	return qclients
+	return pxClient
 }
 
 func (p *PaxosReplica) updateDataStore(kv *KV) {
@@ -100,6 +119,5 @@ func (p *PaxosReplica) Learn(ctx context.Context, data *Data) (*Dummy, error) {
 }
 
 func (p *PaxosReplica) sendLearn(data *Data) {
-	qclients := p.createPXClient()
-	qclients.SendLearn(data)
+	p.qclients.SendLearn(data)
 }
