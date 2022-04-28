@@ -4,6 +4,7 @@ import (
 	"errors"
 	"golang.org/x/net/context"
 	"log"
+	"time"
 )
 
 type EdgeService struct {
@@ -13,6 +14,7 @@ type EdgeService struct {
 	currentTerm        int32
 	config             *Config
 	teClient           *TEClient
+	clusterClient      *EdgeClient
 	regConfig          *RegistrationConfig
 	lc                 *LeaderClient
 	iAmLeader          bool
@@ -37,6 +39,10 @@ func NewEdgeService(configuration *Config) *EdgeService {
 	//edgeService.log.SetLogEntryUpdateChannel(edgeService.newLogEntryChannel)
 	edgeService.queue = NewTimedQueue(configuration.Epoch.Duration, configuration.Epoch.MaxSize, edgeService.log.BatchedData)
 	go edgeService.waitForLogEntryUpdate()
+	log.Printf("\nSetting up connection to edge replicas.\n")
+	time.Sleep(time.Second * 10)
+	edgeService.clusterClient = createNewEdgeClient(configuration)
+	log.Printf("\nConnection to edge replicas setup.\n")
 	return edgeService
 }
 
@@ -141,14 +147,18 @@ func (e *EdgeService) RegisterWithTE() {
 }
 
 func (e *EdgeService) waitForLogEntryUpdate() {
-	clusterClient := NewEdgeClient()
-	for _, c := range e.config.ClusterNodes {
-		addr := c.Ip + ":" + c.Port
-		clusterClient.AddConnection(addr)
-	}
 	for l := range e.newLogEntryChannel {
 		go e.teClient.SendAccept(ConvertToAcceptMsg(l, &e.config.Node, e.currentTerm, e.key))
 		p := ConvertToProposeData(*l, &e.config.Node)
-		clusterClient.SendProposal(p)
+		e.clusterClient.SendProposal(p)
 	}
+}
+
+func createNewEdgeClient(config *Config) *EdgeClient {
+	clusterClient := NewEdgeClient()
+	for _, c := range config.ClusterNodes {
+		addr := c.Ip + ":" + c.Port
+		clusterClient.AddConnection(addr)
+	}
+	return clusterClient
 }
