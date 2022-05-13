@@ -18,7 +18,7 @@ service Paxos {
 
 message Data {
     Ballot b = 1;
-    KV kv = 2;
+    repeated KV kv = 2;
 }
 message KV {
     bytes key = 1;

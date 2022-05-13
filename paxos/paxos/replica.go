@@ -16,6 +16,7 @@ type PaxosReplica struct {
 	qclients        *PXClient
 	writerChannel   chan *KV
 	receiverChannel chan *KV
+	batchProcessor  chan []*KV
 }
 
 func NewPaxosReplica(c *lc.Config) *PaxosReplica {
@@ -26,16 +27,20 @@ func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 		config:          c,
 		writerChannel:   make(chan *KV),
 		receiverChannel: make(chan *KV),
+		batchProcessor:  make(chan []*KV),
 	}
 	log.Println("Setting up connections to other replicas.")
 	time.Sleep(time.Second * 10)
 	pr.qclients = pr.createPXClient()
 	log.Println("Connections setup.")
-	go pr.Writer()
+	//go pr.Writer()
+	go pr.batchedWriter()
+	go pr.processBatch()
 	return pr
 }
 
 func (p *PaxosReplica) Read(ctx context.Context, kv *KV) (*KV, error) {
+	//log.Printf("Read request received for key size: %v", len(kv.Key))
 	k := string(kv.Key)
 	v, ok := p.dataStore.Get(k)
 	resp := &KV{
@@ -49,9 +54,45 @@ func (p *PaxosReplica) Read(ctx context.Context, kv *KV) (*KV, error) {
 }
 
 func (p *PaxosReplica) Write(ctx context.Context, kv *KV) (*KV, error) {
+	//log.Printf("Write request received for key and value len: %v", len(kv.Key)+len(kv.Value))
 	p.writerChannel <- kv
-	rkv := <-p.receiverChannel
-	return rkv, nil
+	//rkv := <-p.receiverChannel
+	return kv, nil
+}
+func (p *PaxosReplica) batchedWriter() {
+	maxSize := p.config.Epoch.MaxSize
+	log.Printf("Max batch size is: %v", maxSize)
+	batch := make([]*KV, maxSize)
+	counter := 0
+	for kv := range p.writerChannel {
+		batch[counter] = kv
+		counter += 1
+		if counter >= maxSize {
+			p.batchProcessor <- batch
+			counter = 0
+		}
+	}
+}
+
+func (p *PaxosReplica) processBatch() {
+	for kvs := range p.batchProcessor {
+		p.ballotNumber += 1
+		log.Printf("Processing batch for ballot number %v, batch size %v", p.ballotNumber, len(kvs))
+		ballot := &Ballot{
+			N: p.ballotNumber,
+		}
+		status, _ := p.qclients.SendProposal(ballot, p.config.F+1)
+		if status {
+			data := &Data{
+				B:  ballot,
+				Kv: kvs,
+			}
+			p.qclients.SendAccept(data)
+			for _, kv := range kvs {
+				p.updateDataStore(kv)
+			}
+		}
+	}
 }
 
 func (p *PaxosReplica) Writer() {
@@ -65,7 +106,7 @@ func (p *PaxosReplica) Writer() {
 		if status {
 			data := &Data{
 				B:  ballot,
-				Kv: kv,
+				Kv: []*KV{kv},
 			}
 			p.qclients.SendAccept(data)
 			p.updateDataStore(kv)
@@ -107,14 +148,18 @@ func (p *PaxosReplica) Prepare(ctx context.Context, ballot *Ballot) (*Promise, e
 func (p *PaxosReplica) Accept(ctx context.Context, data *Data) (*Dummy, error) {
 	log.Printf("Ballot number: %v, Accept received for: %v", p.ballotNumber, data)
 	if data.B.N == p.ballotNumber {
-		p.updateDataStore(data.Kv)
+		for _, kv := range data.Kv {
+			p.updateDataStore(kv)
+		}
 		go p.sendLearn(data)
 	}
 	return &Dummy{}, nil
 }
 
 func (p *PaxosReplica) Learn(ctx context.Context, data *Data) (*Dummy, error) {
-	p.updateDataStore(data.Kv)
+	for _, kv := range data.Kv {
+		p.updateDataStore(kv)
+	}
 	return &Dummy{}, nil
 }
 
