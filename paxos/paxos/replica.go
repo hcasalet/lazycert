@@ -184,7 +184,7 @@ func (p *PaxosReplica) Prepare(ctx context.Context, ballot *Ballot) (*Promise, e
 }
 
 func (p *PaxosReplica) Accept(ctx context.Context, data *Data) (*Dummy, error) {
-	log.Printf("Ballot number: %v, Accept received for: %v", p.ballotNumber, data)
+	log.Printf("Ballot number: %v, Accept received", p.ballotNumber)
 	if data.B.N == p.ballotNumber {
 		for _, kv := range data.Kv {
 			p.updateDataStore(kv)
