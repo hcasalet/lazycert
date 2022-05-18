@@ -35,6 +35,7 @@ func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 		batchProcessor:  make(chan []*KV),
 		maxDuration:     0,
 		maxSize:         0,
+		queue:           goconcurrentqueue.NewFIFO(),
 	}
 	log.Println("Setting up connections to other replicas.")
 	time.Sleep(time.Second * 10)
