@@ -56,7 +56,7 @@ func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 			select {
 			case <-pr.ticker.C:
 				cur := pr.queue.GetLen()
-				if cur >= 0 && cur == len {
+				if cur > 0 && cur == len {
 					go pr.processQueue(cur)
 				}
 			}
