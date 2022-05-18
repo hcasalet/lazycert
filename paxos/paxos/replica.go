@@ -2,6 +2,7 @@ package paxos
 
 import (
 	hm "github.com/cornelk/hashmap"
+	"github.com/enriquebris/goconcurrentqueue"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"golang.org/x/net/context"
 	"log"
@@ -17,6 +18,10 @@ type PaxosReplica struct {
 	writerChannel   chan *KV
 	receiverChannel chan *KV
 	batchProcessor  chan []*KV
+	ticker          *time.Ticker
+	queue           goconcurrentqueue.Queue
+	maxDuration     int
+	maxSize         int
 }
 
 func NewPaxosReplica(c *lc.Config) *PaxosReplica {
@@ -28,6 +33,8 @@ func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 		writerChannel:   make(chan *KV),
 		receiverChannel: make(chan *KV),
 		batchProcessor:  make(chan []*KV),
+		maxDuration:     0,
+		maxSize:         0,
 	}
 	log.Println("Setting up connections to other replicas.")
 	time.Sleep(time.Second * 10)
@@ -36,6 +43,24 @@ func NewPaxosReplica(c *lc.Config) *PaxosReplica {
 	//go pr.Writer()
 	go pr.batchedWriter()
 	go pr.processBatch()
+
+	pr.maxDuration = pr.config.Epoch.Duration
+	pr.maxSize = pr.config.Epoch.MaxSize
+	epochDuration := time.Duration(pr.maxDuration) * time.Millisecond
+	pr.ticker = time.NewTicker(epochDuration)
+	go func() {
+		var len int
+		for {
+			len = pr.queue.GetLen()
+			select {
+			case <-pr.ticker.C:
+				cur := pr.queue.GetLen()
+				if cur >= 0 && cur == len {
+					go pr.processQueue(cur)
+				}
+			}
+		}
+	}()
 	return pr
 }
 
@@ -60,18 +85,27 @@ func (p *PaxosReplica) Write(ctx context.Context, kv *KV) (*KV, error) {
 	return kv, nil
 }
 func (p *PaxosReplica) batchedWriter() {
-	maxSize := p.config.Epoch.MaxSize
-	log.Printf("Max batch size is: %v", maxSize)
-	batch := make([]*KV, maxSize)
+	log.Printf("Max batch size is: %v", p.maxSize)
 	counter := 0
 	for kv := range p.writerChannel {
-		batch[counter] = kv
+		p.queue.Enqueue(kv)
 		counter += 1
-		if counter >= maxSize {
-			p.batchProcessor <- batch
+		if counter >= p.maxSize {
+			count := p.maxSize
+			go p.processQueue(count)
 			counter = 0
 		}
 	}
+}
+
+func (p *PaxosReplica) processQueue(count int) {
+
+	batch := make([]*KV, p.maxSize)
+	for i := 0; i < count; i++ {
+		v, _ := p.queue.Dequeue()
+		batch[i] = v.(*KV)
+	}
+	p.batchProcessor <- batch
 }
 
 func (p *PaxosReplica) processBatch() {
@@ -87,17 +121,20 @@ func (p *PaxosReplica) processBatch() {
 				B:  ballot,
 				Kv: kvs,
 			}
+			go p.batchUpdateDataStore(kvs)
 			p.qclients.SendAccept(data)
-			for _, kv := range kvs {
-				p.updateDataStore(kv)
-			}
 		}
+	}
+}
+
+func (p *PaxosReplica) batchUpdateDataStore(kvs []*KV) {
+	for _, kv := range kvs {
+		go p.updateDataStore(kv)
 	}
 }
 
 func (p *PaxosReplica) Writer() {
 	for kv := range p.writerChannel {
-
 		p.ballotNumber += 1
 		ballot := &Ballot{
 			N: p.ballotNumber,
