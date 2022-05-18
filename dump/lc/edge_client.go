@@ -78,7 +78,8 @@ func (e *EdgeClient) BroadcastCertificate(certificate *Certificate) {
 	}
 }
 func (e *EdgeClient) SendProposal(p *ProposeData) {
-	log.Printf("Propose message: %v", p)
+	//log.Printf("Propose message: %v", p)
+
 	for addr, client := range e.clientMap {
 		log.Printf("Sending propose data to: %v", addr)
 		if client != nil {

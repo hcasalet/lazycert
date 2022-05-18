@@ -142,7 +142,7 @@ func ConvertToProposeData(l LogEntry, n *NodeInfo) *ProposeData {
 }
 
 func ConvertToAcceptMsg(l *LogEntry, n *NodeInfo, term int32, k *Key) (a *AcceptMsg) {
-	log.Printf("Marshalling blockinfo: %v\n", l.Data)
+	//log.Printf("Marshalling blockinfo: %v\n", l.Data)
 	messageBytes, err := proto.Marshal(l.Data)
 	a = nil
 	if err == nil {
