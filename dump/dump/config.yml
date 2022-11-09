@@ -1,26 +1,26 @@
 edge_nodes:
   1:
-    host: "10.140.82.149"
+    host: "localhost"
     port: "35001"
   2:
-    host: "10.140.81.176"
+    host: "localhost"
     port: "35002"
   3:
-    host: "10.140.81.255"
+    host: "localhost"
     port: "35003"
   4:
-    host: "10.140.83.111"
+    host: "localhost"
     port: "35004"
   5:
-    host: "10.140.82.99"
+    host: "localhost"
     port: "35005"
 
 te:
-  host: "10.140.81.237"
+  host: "localhost"
   port: "35000"
 
 epoch:
-  maxsize: 3000
-  duration: 10000
+  maxsize: 100
+  duration: 5
 
 

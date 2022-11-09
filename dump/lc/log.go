@@ -160,5 +160,6 @@ func ConvertToAcceptMsg(l *LogEntry, n *NodeInfo, term int32, k *Key) (a *Accept
 			TermID: term,
 		}
 	}
+	//log.Printf("lodID:HASH = %v, %v", l.LogID, a. )
 	return a
 }

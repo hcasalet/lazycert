@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -9,11 +11,16 @@ import (
 )
 
 func main() {
-	log.Printf("This program generates synthetic transactions.")
 
+	host := flag.String("h", "localhost", "HostName.")
+	port := flag.String("p", "35003", "Port.")
+	flag.Parse()
+	log.Printf("This program generates synthetic transactions.")
+	hostPort := fmt.Sprintf("%v:%v", *host, *port)
+	log.Printf("Connecting to %v", hostPort)
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial("localhost:35004", opts...)
+	conn, err := grpc.Dial(hostPort, opts...)
 	if err != nil {
 		log.Fatalf("Could not connect to TE server: %v", err)
 	}
