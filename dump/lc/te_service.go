@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"sort"
+	"time"
 )
 
 type TrustedEntityService struct {
@@ -22,10 +23,11 @@ type TrustedEntityService struct {
 	currentLogID    int32
 	certifiedLogIDs hm.HashMap
 	//certifiedLogIDs map[int32]bool
-	certificates map[int32]*Certificate
-	votes        hm.HashMap
-	voteCount    hm.HashMap
-	maxVoted     hm.HashMap
+	certificates              map[int32]*Certificate
+	votes                     hm.HashMap
+	voteCount                 hm.HashMap
+	maxVoted                  hm.HashMap
+	logCertificationStartTime hm.HashMap
 }
 
 func NewTrustedEntityService(config *Config) *TrustedEntityService {
@@ -52,14 +54,15 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 			},
 			LogPosition: 0,
 		},
-		configuration:   config,
-		voteMap:         hm.HashMap{},
-		currentLogID:    0,
-		certifiedLogIDs: hm.HashMap{},
-		certificates:    make(map[int32]*Certificate),
-		votes:           hm.HashMap{},
-		voteCount:       hm.HashMap{},
-		maxVoted:        hm.HashMap{},
+		configuration:             config,
+		voteMap:                   hm.HashMap{},
+		currentLogID:              0,
+		certifiedLogIDs:           hm.HashMap{},
+		certificates:              make(map[int32]*Certificate),
+		votes:                     hm.HashMap{},
+		voteCount:                 hm.HashMap{},
+		maxVoted:                  hm.HashMap{},
+		logCertificationStartTime: hm.HashMap{},
 	}
 }
 
@@ -101,6 +104,7 @@ func (t *TrustedEntityService) addToVotesAndIncrementVoteCount(acc *AcceptMsg) {
 		voteMap := hm.HashMap{}
 		t.votes.Set(acc.Block.LogID, voteMap)
 		t.voteCount.Set(acc.Block.LogID, 0)
+		t.logCertificationStartTime.Set(acc.Block.LogID, time.Now())
 	}
 	v, _ := t.votes.Get(acc.Block.LogID)
 	voteMap := v.(hm.HashMap)
@@ -128,7 +132,7 @@ func (t *TrustedEntityService) addToVotesAndIncrementVoteCount(acc *AcceptMsg) {
 		}
 		log.Printf("VoteCount for message hash %v = %v. MAX = %v", hashString, len(voteCount), max)
 	}
-	t.printVoteMap()
+	//t.printVoteMap()
 	t.voteCount.Set(acc.Block.LogID, max)
 	t.maxVoted.Set(acc.Block.LogID, maxVotedHash)
 }
@@ -152,6 +156,12 @@ func (t *TrustedEntityService) checkVotes2() {
 					t.certifiedLogIDs.Set(logIDInt32, logHash)
 					certificate := t.createCertificate(logIDInt32, logHash.(string))
 					t.certificates[logIDInt32] = &certificate
+					if kt, ok := t.logCertificationStartTime.Get(logIDInt32); ok {
+						startTime := kt.(time.Time)
+
+						totalTime := time.Since(startTime)
+						log.Printf("CERTIFICATION TIME FOR LOG ID: %v = %s", logIDInt32, totalTime)
+					}
 					t.broadCastCertificate(logIDInt32)
 				} else {
 					log.Printf("LogHash not found for log ID: %v", logIDInt32)
