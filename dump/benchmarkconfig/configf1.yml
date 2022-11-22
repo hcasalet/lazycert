@@ -13,7 +13,7 @@ edge_nodes:
     port: "35004"
 
 te:
-  host: "192.5.87.175"
+  host: "10.140.81.157"
   port: "35000"
 
 epoch:
