@@ -23,7 +23,8 @@ type TrustedEntityService struct {
 	currentLogID    int32
 	certifiedLogIDs hm.HashMap
 	//certifiedLogIDs map[int32]bool
-	certificates              map[int32]*Certificate
+	//certificates              map[int32]*Certificate
+	certificates              hm.HashMap
 	votes                     hm.HashMap
 	voteCount                 hm.HashMap
 	maxVoted                  hm.HashMap
@@ -54,11 +55,12 @@ func NewTrustedEntityService(config *Config) *TrustedEntityService {
 			},
 			LogPosition: 0,
 		},
-		configuration:             config,
-		voteMap:                   hm.HashMap{},
-		currentLogID:              0,
-		certifiedLogIDs:           hm.HashMap{},
-		certificates:              make(map[int32]*Certificate),
+		configuration:   config,
+		voteMap:         hm.HashMap{},
+		currentLogID:    0,
+		certifiedLogIDs: hm.HashMap{},
+		//certificates:              make(map[int32]*Certificate),
+		certificates:              hm.HashMap{},
 		votes:                     hm.HashMap{},
 		voteCount:                 hm.HashMap{},
 		maxVoted:                  hm.HashMap{},
@@ -155,7 +157,7 @@ func (t *TrustedEntityService) checkVotes2() {
 				if logHash, ok := t.maxVoted.Get(logIDInt32); ok {
 					t.certifiedLogIDs.Set(logIDInt32, logHash)
 					certificate := t.createCertificate(logIDInt32, logHash.(string))
-					t.certificates[logIDInt32] = &certificate
+					t.certificates.Set(logIDInt32, certificate)
 					if kt, ok := t.logCertificationStartTime.Get(logIDInt32); ok {
 						startTime := kt.(time.Time)
 
@@ -392,19 +394,19 @@ func (t *TrustedEntityService) checkVotes() {
 }
 
 func (t *TrustedEntityService) cerfityLogPosition(logID int32, voteMap map[string]Vote, hash []byte) {
-	if _, ok := t.certificates[logID]; !ok {
+	if _, ok := t.certificates.Get(logID); !ok {
 		teSignature := t.privateKey.Sign(hash)
 		votes := make([]*Vote, len(voteMap))
 		for _, v := range voteMap {
 			votes = append(votes, &v)
 		}
 
-		t.certificates[logID] = &Certificate{
+		t.certificates.Set(logID, Certificate{
 			LogID:       logID,
 			AcceptHash:  hash,
 			TeSignature: teSignature,
 			Votes:       votes,
-		}
+		})
 	}
 }
 
@@ -427,9 +429,12 @@ func (t *TrustedEntityService) countVotes(voteMap map[string]Vote) (int, []byte)
 }
 
 func (t *TrustedEntityService) broadCastCertificate(logID int32) {
-	edgeClient := t.getEdgeClientObject()
-	edgeClient.BroadcastCertificate(t.certificates[logID])
-	edgeClient.CloseAllConnections()
+	if c, ok := t.certificates.Get(logID); ok {
+		edgeClient := t.getEdgeClientObject()
+		certificate := c.(Certificate)
+		edgeClient.BroadcastCertificate(&certificate)
+		edgeClient.CloseAllConnections()
+	}
 }
 
 func (t *TrustedEntityService) copyVoteMap(vm hm.HashMap) map[string]Vote {
