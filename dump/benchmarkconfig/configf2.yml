@@ -23,8 +23,8 @@ edge_nodes:
 
 
 te:
-  host: "localhost"
-  port: "35000"
+  host: "192.5.87.175"
+  port: "37000"
 
 epoch:
   maxsize: 100
