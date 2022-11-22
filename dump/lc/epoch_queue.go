@@ -21,6 +21,7 @@ type TimedQueue struct {
 	d              time.Duration
 	processed      map[int]bool
 	queue          *gq.FIFO
+	batchStartTime time.Time
 }
 
 func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
@@ -53,6 +54,7 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 			}
 		}
 	}()
+	t.batchStartTime = time.Now()
 	return t
 }
 
@@ -94,6 +96,8 @@ func (q *TimedQueue) processEpoch(n int, count int) {
 		q.receiver <- epochQueue
 		q.epoch += 1
 		q.counter = 0
+		log.Printf("BATCH FORMATION TIME, SIZE: %s, %v", time.Since(q.batchStartTime), count)
+		q.batchStartTime = time.Now()
 	} /*else {
 		log.Printf("Waiting for epoch to fill up. %v", n)
 	}*/

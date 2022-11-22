@@ -1,0 +1,41 @@
+edge_nodes:
+  1:
+    host: "localhost"
+    port: "35001"
+  2:
+    host: "localhost"
+    port: "35002"
+  3:
+    host: "localhost"
+    port: "35003"
+  4:
+    host: "localhost"
+    port: "35004"
+  5:
+    host: "localhost"
+    port: "35005"
+  6:
+    host: "localhost"
+    port: "35006"
+  7:
+    host: "localhost"
+    port: "35007"
+  8:
+    host: "localhost"
+    port: "35008"
+  9:
+    host: "localhost"
+    port: "35009"
+  10:
+    host: "localhost"
+    port: "35010"
+
+te:
+  host: "localhost"
+  port: "35000"
+
+epoch:
+  maxsize: 100
+  duration: 5
+
+

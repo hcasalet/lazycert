@@ -10,9 +10,8 @@ type YamlConfig struct {
 	Viper *viper.Viper
 }
 
-func NewYamlConfig() *YamlConfig {
-	viper.SetConfigName("config.yml")
-	viper.AddConfigPath("./dump/")
+func NewYamlConfig(ymlFile string) *YamlConfig {
+	viper.SetConfigFile(ymlFile)
 	viper.SetConfigType("yaml")
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Printf("Error reading configuration file: %v", err)

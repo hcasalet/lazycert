@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/hcasalet/lazycert/dump/lc"
 	"google.golang.org/grpc"
 	"log"
@@ -10,7 +11,9 @@ import (
 func main() {
 
 	log.Println("Trusted Entity Server")
-	config := ReadTEArgs()
+	ymlFile := flag.String("y", "./benchmarkconfig/configf1.yml", "EdgeNode Identifier.")
+	flag.Parse()
+	config := ReadTEArgs(*ymlFile)
 	lis, err := net.Listen("tcp", "0.0.0.0:"+config.Node.Port)
 	if err != nil {
 		log.Fatalf("Error starting the server at port 35000, %v", err)
@@ -22,8 +25,8 @@ func main() {
 	}
 }
 
-func ReadTEArgs() *lc.Config {
-	ymlConfig := lc.NewYamlConfig()
+func ReadTEArgs(ymlFile string) *lc.Config {
+	ymlConfig := lc.NewYamlConfig(ymlFile)
 	config := ymlConfig.GetTEConfig()
 	return config
 }

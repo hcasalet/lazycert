@@ -2,6 +2,7 @@ package lc
 
 import (
 	"errors"
+	hm "github.com/cornelk/hashmap"
 	"golang.org/x/net/context"
 	"log"
 	"time"
@@ -20,6 +21,7 @@ type EdgeService struct {
 	iAmLeader          bool
 	queue              *TimedQueue
 	newLogEntryChannel chan *LogEntry
+	certificationTimes hm.HashMap
 }
 
 func NewEdgeService(configuration *Config) *EdgeService {
@@ -35,6 +37,7 @@ func NewEdgeService(configuration *Config) *EdgeService {
 		iAmLeader:          false,
 		log:                NewLog(configuration),
 		newLogEntryChannel: make(chan *LogEntry),
+		certificationTimes: hm.HashMap{},
 	}
 	//edgeService.log.SetLogEntryUpdateChannel(edgeService.newLogEntryChannel)
 	edgeService.queue = NewTimedQueue(configuration.Epoch.Duration, configuration.Epoch.MaxSize, edgeService.log.BatchedData)
@@ -58,25 +61,31 @@ func (e *EdgeService) Commit(ctx context.Context, commitData *CommitData) (*Dumm
 }
 
 func (e *EdgeService) Read(ctx context.Context, val *KeyVal) (*ReadResponse, error) {
+	startTime := time.Now()
+	var rr *ReadResponse
 	key := string(val.Key)
 	if v, ok := e.log.Read(key); ok {
-		return &ReadResponse{
+		rr = &ReadResponse{
 			Data: &KeyVal{
 				Key:   val.Key,
 				Value: v,
-			}, Status: ResponseStatus_SUCCESS}, nil
+			}, Status: ResponseStatus_SUCCESS}
 	} else {
-		return &ReadResponse{Data: &KeyVal{Key: val.Key, Value: []byte{0}}, Status: ResponseStatus_ERROR}, nil
+		rr = &ReadResponse{Data: &KeyVal{Key: val.Key, Value: []byte{0}}, Status: ResponseStatus_ERROR}
 	}
+	log.Printf("READ COMPLETED IN: %s, %s", time.Since(startTime), rr.Status)
+	return rr, nil
 }
 
 func (e *EdgeService) Propose(ctx context.Context, data *ProposeData) (d *Dummy, err error) {
 	// TODO: validate header to ensure data was received from the right leader.
 	if e.log.Propose(data.LogBlock.LogID, data.LogBlock.Data) {
+		startTime := time.Now()
 		m, _ := e.log.logEntry.Get(data.LogBlock.LogID)
 		entry := m.(*LogEntry)
 		a := ConvertToAcceptMsg(entry, &e.config.Node, e.currentTerm, e.key)
 		e.teClient.SendAccept(a)
+		e.certificationTimes.Set(data.LogBlock.LogID, startTime)
 		err = nil
 	} else {
 		err = errors.New("cannot add duplicate propose data")
@@ -96,6 +105,12 @@ func (e *EdgeService) Certification(ctx context.Context, certificate *Certificat
 		//log.Printf("Verfied certificate received from TE")
 		e.log.Certificate <- certificate
 		err = nil
+		if t, ok := e.certificationTimes.Get(certificate.LogID); ok {
+			startTime := t.(time.Time)
+			log.Printf(" LOG ID, CERTIFICATION DURATION:%v, %s", certificate.LogID, time.Since(startTime))
+		} else {
+			log.Printf("CERTIFICATION START TIME NOT FOUND FOR LOG ID: %v", certificate.LogID)
+		}
 	} else {
 		log.Printf("Certificate could not be verified. Signature does not match that of TE.")
 		err = errors.New("signature match failed. invalid TE signature")
@@ -111,7 +126,7 @@ func (e *EdgeService) LeaderStatus(ctx context.Context, leaderConfig *LeaderConf
 }
 
 func (e *EdgeService) checkLeadershipStatusAndConnect(leaderConfig *LeaderConfig) {
-	log.Printf("Received leader configuration: %v", leaderConfig)
+	log.Printf("Received leader configuration: %v, TermID: %v", leaderConfig.Node, leaderConfig.TermID)
 	if e.config.Node.Uuid == leaderConfig.Node.Uuid {
 		log.Printf("Now I am the leader.")
 		e.iAmLeader = true
@@ -131,7 +146,7 @@ func (e *EdgeService) RegisterWithTE() {
 		RawPublicKey: e.key.GetPublicKey(),
 	}, e.config.Node, e.currentTerm)
 	if err == nil {
-		log.Printf("Registered with TE. Registration configuration %v", regConfig)
+		log.Printf("Registered with TE.")
 		e.currentTerm = regConfig.ClusterLeader.TermID
 		if regConfig.ClusterLeader.Node != nil {
 			e.leader = regConfig.ClusterLeader
@@ -148,9 +163,12 @@ func (e *EdgeService) RegisterWithTE() {
 
 func (e *EdgeService) waitForLogEntryUpdate() {
 	for l := range e.newLogEntryChannel {
+		startTime := time.Now()
 		go e.teClient.SendAccept(ConvertToAcceptMsg(l, &e.config.Node, e.currentTerm, e.key))
+		e.certificationTimes.Set(l.LogID, startTime)
 		p := ConvertToProposeData(*l, &e.config.Node)
 		e.clusterClient.SendProposal(p)
+		log.Printf("LOG REPLICATION TIME AT LEADER: %s", time.Since(startTime))
 	}
 }
 

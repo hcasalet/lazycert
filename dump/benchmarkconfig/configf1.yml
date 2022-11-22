@@ -1,0 +1,23 @@
+edge_nodes:
+  1:
+    host: "localhost"
+    port: "35001"
+  2:
+    host: "localhost"
+    port: "35002"
+  3:
+    host: "localhost"
+    port: "35003"
+  4:
+    host: "localhost"
+    port: "35004"
+
+te:
+  host: "localhost"
+  port: "35000"
+
+epoch:
+  maxsize: 100
+  duration: 5
+
+

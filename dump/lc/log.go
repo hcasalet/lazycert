@@ -4,6 +4,7 @@ import (
 	hm "github.com/cornelk/hashmap"
 	"github.com/golang/protobuf/proto"
 	"log"
+	"time"
 )
 
 type Log struct {
@@ -15,7 +16,8 @@ type Log struct {
 	logEntryUpdateChannel chan *LogEntry
 	dbDict                hm.HashMap
 	//dbDict                map[string][]byte
-	config *Config
+	config             *Config
+	logProcessingTimes hm.HashMap
 }
 
 func NewLog(cfg *Config) *Log {
@@ -29,6 +31,7 @@ func NewLog(cfg *Config) *Log {
 		//dbDict:                make(map[string][]byte),
 		config:                cfg,
 		logEntryUpdateChannel: nil,
+		logProcessingTimes:    hm.HashMap{},
 	}
 	go l.processBatches()
 	go l.certify()
@@ -38,6 +41,8 @@ func NewLog(cfg *Config) *Log {
 func (l *Log) processBatches() {
 	for batch := range l.BatchedData {
 		//log.Printf("received txn batch: %v\n", batch)
+		batchSize := len(batch)
+		batchProcessingStartTime := time.Now()
 		l.LogIndex += 1
 		log.Printf("received txn batch for epoch: %v, batchsize: %v\n", l.LogIndex, len(batch))
 		currentLogIndex := l.LogIndex
@@ -54,6 +59,7 @@ func (l *Log) processBatches() {
 		This is a provisional update to the current data before the current log entry has been certified.
 		*/
 		l.updateDBDict(currentLogIndex)
+		log.Printf("LOG COMMIT TIME, LOGID, batch size: %s, %v, %v", time.Since(batchProcessingStartTime), currentLogIndex, batchSize)
 	}
 }
 
@@ -111,7 +117,7 @@ func (l *Log) updateDBDict(logIndex int32) {
 	entry := e.(*LogEntry).Data.Data
 	for _, data := range entry {
 		for _, kv := range data.Data {
-			l.dbDict.Insert(string(kv.Key), kv.Value)
+			l.dbDict.Set(string(kv.Key), kv.Value)
 		}
 	}
 }
