@@ -17,7 +17,7 @@ te:
   port: "35000"
 
 epoch:
-  maxsize: 1500
-  duration: 1200
+  maxsize: 2000
+  duration: 1500
 
 
