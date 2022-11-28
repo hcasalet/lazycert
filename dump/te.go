@@ -13,6 +13,7 @@ func main() {
 	log.Println("Trusted Entity Server")
 	ymlFile := flag.String("y", "./benchmarkconfig/configf1.yml", "EdgeNode Identifier.")
 	flag.Parse()
+	log.Printf("YML Configuration file: %s", *ymlFile)
 	config := ReadTEArgs(*ymlFile)
 	lis, err := net.Listen("tcp", "0.0.0.0:"+config.Node.Port)
 	if err != nil {

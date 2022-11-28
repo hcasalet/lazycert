@@ -27,6 +27,7 @@ func ReadArgs() *lc.Config {
 	id := flag.String("id", "1", "EdgeNode Identifier.")
 	ymlFile := flag.String("y", "./benchmarkconfig/configf1.yml", "Experiment configurations.")
 	flag.Parse()
+	log.Printf("YML Configuration file: %s", *ymlFile)
 	log.Printf("Node UUID is %v", *id)
 	ymlConfig := lc.NewYamlConfig(*ymlFile)
 	config := ymlConfig.SetupEdgeConfig(id)
