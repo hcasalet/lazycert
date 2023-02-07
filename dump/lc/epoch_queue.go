@@ -71,15 +71,14 @@ func (q *TimedQueue) Insert(data *CommitData) {
 		e := q.epoch
 		q.counter = 0
 		q.processEpoch(e, q.cap)
-	} /* else {
-	}*/
+	}
 	q.mutex.Unlock()
 }
 
 func (q *TimedQueue) processEpoch(n int, count int) {
 	//q.mutex.Lock()
+	q.ticker.Stop()
 	if _, ok := q.processed[n]; !ok && count > 0 && q.queue.GetLen() > 0 {
-		q.ticker.Stop()
 		if q.queue.GetLen() < count {
 			count = q.queue.GetLen()
 		}
@@ -89,18 +88,14 @@ func (q *TimedQueue) processEpoch(n int, count int) {
 		for i := 0; i < count; i++ {
 			v, _ := q.queue.Dequeue()
 			epochQueue[i] = v.(*CommitData)
-			//epochQueue[i] = q.commitQueue[(q.prev+i)%cap(q.commitQueue)]
-			//q.commitQueue[(q.prev+i)%cap(q.commitQueue)] = nil
 		}
 		q.prev = q.cur
 		q.receiver <- epochQueue
 		q.epoch += 1
 		q.counter = 0
 		log.Printf("BATCH FORMATION TIME, SIZE: %s, %v", time.Since(q.batchStartTime), count)
-		q.ticker.Reset(q.d)
 		q.batchStartTime = time.Now()
-	} /*else {
-		log.Printf("Waiting for epoch to fill up. %v", n)
-	}*/
-	//q.mutex.Unlock()
+	}
+	q.ticker.Reset(q.d)
+
 }
