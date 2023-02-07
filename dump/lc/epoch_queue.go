@@ -79,12 +79,12 @@ func (q *TimedQueue) Insert(data *CommitData) {
 func (q *TimedQueue) processEpoch(n int, count int) {
 	//q.mutex.Lock()
 	if _, ok := q.processed[n]; !ok && count > 0 && q.queue.GetLen() > 0 {
+		q.ticker.Stop()
 		if q.queue.GetLen() < count {
 			count = q.queue.GetLen()
 		}
 		log.Printf("Processing epoch %v", n)
 		q.processed[n] = true
-		q.ticker.Reset(q.d)
 		epochQueue := make([]*CommitData, count)
 		for i := 0; i < count; i++ {
 			v, _ := q.queue.Dequeue()
@@ -97,6 +97,7 @@ func (q *TimedQueue) processEpoch(n int, count int) {
 		q.epoch += 1
 		q.counter = 0
 		log.Printf("BATCH FORMATION TIME, SIZE: %s, %v", time.Since(q.batchStartTime), count)
+		q.ticker.Reset(q.d)
 		q.batchStartTime = time.Now()
 	} /*else {
 		log.Printf("Waiting for epoch to fill up. %v", n)
