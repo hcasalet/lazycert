@@ -9,10 +9,10 @@ import (
 
 type TimedQueue struct {
 	//commitQueue    []*CommitData
-	ticker         *time.Ticker
-	cur            int
-	prev           int
-	counter        int
+	ticker *time.Ticker
+	cur    int
+	prev   int
+	//counter        int
 	mutex          sync.Mutex
 	epoch          int
 	receiver       chan []*CommitData
@@ -28,11 +28,11 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 
 	t := &TimedQueue{
 		//commitQueue:    make([]*CommitData, capacity*1000),
-		queue:          gq.NewFIFO(),
-		ticker:         nil,
-		cur:            0,
-		prev:           0,
-		counter:        0,
+		queue:  gq.NewFIFO(),
+		ticker: nil,
+		cur:    0,
+		prev:   0,
+		//counter:        0,
 		epoch:          0,
 		receiver:       p,
 		processedEpoch: 0,
@@ -59,20 +59,20 @@ func NewTimedQueue(ms int, capacity int, p chan []*CommitData) *TimedQueue {
 }
 
 func (q *TimedQueue) Insert(data *CommitData) {
-	q.mutex.Lock()
 	//q.commitQueue[q.cur] = data
 	q.queue.Enqueue(data)
 	//q.cur = (q.cur + 1) % cap(q.commitQueue)
-	q.counter += 1
-	capacityReached := q.counter >= q.cap
+	//q.counter += 1
+	capacityReached := q.queue.GetLen() >= q.cap
 
 	if capacityReached {
 		//q.mutex.Unlock()
+		q.mutex.Lock()
 		e := q.epoch
-		q.counter = 0
+		//q.counter = 0
 		q.processEpoch(e, q.cap)
+		q.mutex.Unlock()
 	}
-	q.mutex.Unlock()
 }
 
 func (q *TimedQueue) processEpoch(n int, count int) {
@@ -92,7 +92,7 @@ func (q *TimedQueue) processEpoch(n int, count int) {
 		q.prev = q.cur
 		q.receiver <- epochQueue
 		q.epoch += 1
-		q.counter = 0
+		//q.counter = 0
 		log.Printf("BATCH FORMATION TIME, SIZE: %s, %v", time.Since(q.batchStartTime), count)
 		q.batchStartTime = time.Now()
 	}
